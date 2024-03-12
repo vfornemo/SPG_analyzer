@@ -1,4 +1,19 @@
+"""
+This module, `utils.py`, provides a set of utility functions for performing calculations related to points in 3D space. 
+
+Functions:
+- `delta(i, j)`: Implements the Kronecker delta.
+- `distance(coord1, coord2)`: Calculates the Euclidean distance between two points in 3D space.
+- `distance_square(coord1, coord2)`: Similar to `distance`, but returns the square of the distance.
+- `car2sph(coords)`: Converts a list of points from Cartesian coordinates to spherical coordinates.
+- `sph2car(coords)`: Converts a list of points from spherical coordinates to Cartesian coordinates.
+
+"""
+
 import numpy as np
+
+from data import TOLERANCE
+
 # Kronecker delta
 def delta(i, j):
     if i == j:
@@ -46,3 +61,13 @@ def sph2car(coords):
         car[i][2] = coords[i][0]*np.cos(coords[i][1]) # z
     return car
 
+def thre_cut(x, thre=6):
+    '''
+    Cut the number to given decimal places.
+
+    Args:
+        x: array
+        thre: threshold for rounding, number of decimal places.
+    
+    '''
+    return np.around(x, thre)

@@ -1,4 +1,15 @@
-import xml
+"""
+This module contains functions to parse .mol files and convert them to Molecule objects. 
+Also contains functions to convert Molecule objects to .xyz and .mol files.
+
+Functions:
+- `from_mol(mol)`: Convert a .mol V2000 file to a Molecule object.
+- `to_xyz(mole, filename)`: Convert a Molecule object to a .xyz file.
+- `to_mol(mole, filename)`: Convert a Molecule object to a .mol file.
+
+"""
+
+
 from spg import Molecule
 '''
 example mol file
@@ -7,8 +18,8 @@ CT1000292221
 
 Created by GaussView 6.0.16
   3  2  0  0  0  0  0  0  0  0  0    0
-    0.0021   -0.0041    0.0020 H   0  0  0  0  0  0  0  0  0  0  0  0
-   -0.0110    0.9628    0.0073 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0021   -0.0041    0.0020 H   0  0  0  0  0  0  0  0  0  0  0  0    # atom block must be aligned perfectly,
+   -0.0110    0.9628    0.0073 O   0  0  0  0  0  0  0  0  0  0  0  0    # and the space between coords must not be less than 3, don't know why
     0.8669    1.3681    0.0011 H   0  0  0  0  0  0  0  0  0  0  0  0
   1  2  1  0  0  0  0
   2  3  1  0  0  0  0
@@ -16,7 +27,7 @@ M  END
 
 '''
 
-def from_mol(mol):
+def from_mol(molfile):
     """
     Convert a .mol V2000 file to a Molecule object.
 
@@ -24,16 +35,12 @@ def from_mol(mol):
         mol: .mol file.
 
     Returns:
-        Molecule object input 
-       e.g.
-       [['H' [0.0, 0.0, 0.0]], 
-        ['H' [0.0, 0.0, 1.0]],
-        ['O' [0.0 1.0 0.0]]]
+        Molecule object 
     """
     # .mol file contains several blocks, first three lines are header, then atom block, then bond block, then properties block.
     # We only need the atom block.
     
-    f = open(mol, 'r')
+    f = open(molfile, 'r')
     lines = f.readlines()
     # read atom block
     natm = int(lines[3].split()[0])
@@ -47,6 +54,7 @@ def from_mol(mol):
 
     mole = [[atm_name[i], atm_coord[i]] for i in range(natm)]
     molec = Molecule(mole)
+    molec.name = molfile.split('/')[-1].split('.')[0]
     molec.headblock = lines[:4]
     molec.atmblock = lines[4:4 + natm]
     molec.atmblock = [x.split()[3:] for x in molec.atmblock]
@@ -85,6 +93,8 @@ def to_mol(mole, filename):
         .mol file.
     """
     f = open('../tests/' + filename + '.mol', 'w')
+    if not hasattr(mole, 'headblock'):
+        RuntimeError('Molecule object does not have .mol file information.')
     f.writelines(mole.headblock)
     # mole.atm_block_updater()
     for i in range(mole.natm):

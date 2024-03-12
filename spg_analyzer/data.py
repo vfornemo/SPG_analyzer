@@ -1,3 +1,13 @@
+"""
+This file contains the element data for the spg_analyzer package.
+
+"""
+
+TOLERANCE = 1e-5
+DEG_TOLERANCE = 4.0
+INERTIA_TOLERANCE = 1e-3
+DEGENERACY_TOLERANCE = 1e-2
+
 atom_data = [
     # atomic number, symbols, names, masses, bohr radius
     [  0, "X", "X",            0.000000, 0.000],  # 0

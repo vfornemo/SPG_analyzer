@@ -1,6 +1,9 @@
-import mol_parser, data
+from sympy import deg
+import mol_parser, data, sym_op
 from utils import *
 import numpy as np
+from data import INERTIA_TOLERANCE, TOLERANCE, DEG_TOLERANCE, DEGENERACY_TOLERANCE
+
 #! Define class
 
 
@@ -42,6 +45,9 @@ class Molecule:
         # move the molecule to the mass center
         mass_ctr = self.mass_center()
         self.coord_shift(mass_ctr)
+        self.coordinates = thre_cut(self.coordinates)
+        # print("coordinates", self.coordinates)
+
         return
 
     
@@ -108,18 +114,31 @@ class SPG(Molecule):
 
     def build(self):
         '''
-        Build the data for symmetry analysis.
+        Build the data for symmetry analysis, including computing the inertia tensor, principal moments and axes of inertia, 
+        and aligning the principal axes of inertia with the x, y, z axes.
         '''
         self.inertia = self.inertia_tensor()
         # principal moments and axes of inertia
         self.prin_mmt, self.prin_axes = self.principal_moments_axes()
-        
+        self.prin_mmt = thre_cut(self.prin_mmt)
+        print("principal moment", self.prin_mmt)
+        self.prin_axes = thre_cut(self.prin_axes)
+        print("principal axes", self.prin_axes)
+
         # align the principal axes of inertia with the x, y, z axes
-        # self.align_axes()
+        self.align_axes()
+
+        # check the degeneracy of the molecule
+        self.degeneracy = self.check_degeneracy()
+
+        # check the symmetry type of the molecule
+        self.sym_type = self.check_sym_type()
+
+
 
         return
 
-    def inertia_tensor(self):
+    def inertia_tensor(self, tol = INERTIA_TOLERANCE):
         '''
         Calculate the inertia tensor of the molecule.
         [[Ixx, Ixy, Ixz],
@@ -132,6 +151,9 @@ class SPG(Molecule):
                 for k in range(3):
                     # Sigma(m_i * (delta(j,k) * r_i^2 - r_i[j] * r_i[k]))
                     tensor[j][k] += self.mol.atm_mass[i] * (delta(j,k)*distance_square(self.mol.coordinates[i]) - self.mol.coordinates[i][j] * self.mol.coordinates[i][k])
+        tol = int(-np.log10(tol))
+        tensor = thre_cut(tensor, tol)
+        print("inertia tensor after threshold cut", tensor)
         return tensor
     
     def principal_moments_axes(self):
@@ -145,9 +167,11 @@ class SPG(Molecule):
     	# Diagonalize the inertia tensor
         eig_val, eig_vec = np.linalg.eig(self.inertia)
         # eig_val is the principal moments of inertia
+        # eig_vec is the principal axes of inertia
+        
         return eig_val, eig_vec	
 
-    def align_axes(self):
+    def align_axes(self, tol = DEG_TOLERANCE):
         '''
         Align the principal axes of inertia with the x, y, z axes.
         '''
@@ -156,6 +180,9 @@ class SPG(Molecule):
         #  [cosyx', cosyy', cosyz']
         #  [coszx', coszy', coszz']]
 
+        # set the tolerance for the alignment, angle between the principal axis and x, y, z axes
+        tol = np.cos(np.deg2rad(tol))
+        # print("tol", tol)
 
         # calculate the angle theta between the principal axis and z axis
         xyz_axis = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
@@ -169,23 +196,89 @@ class SPG(Molecule):
         
         # align the principal axes with the x, y, z axes
         self.mol.coordinates = np.dot(self.mol.coordinates, rot_mat)
+        self.mol.coordinates = thre_cut(self.mol.coordinates)
         return
-                
-  
+    
+    def check_degeneracy(self, tol=DEGENERACY_TOLERANCE):
+        '''
+        Check the degeneracy of the molecule.
+        
+        Symmetric (degeneracy = 2):
+        IA = IB != IC
+        Asymmetric (degeneracy = 1):
+        IA != IB != IC
+        Spherical (degeneracy = 3):
+        IA = IB = IC
+
+        '''
+        # [IA-IB, IB-IC, IA-IC]
+        mmt_diff = np.array([abs(self.prin_mmt[0] - self.prin_mmt[1]), abs(self.prin_mmt[1] - self.prin_mmt[2]), abs(self.prin_mmt[0] - self.prin_mmt[2])])
+        if np.count_nonzero(mmt_diff > tol) == 0:
+            return 3
+        elif np.count_nonzero(mmt_diff > tol) == 2:
+            return 2
+        elif np.count_nonzero(mmt_diff > tol) == 3:
+            return 1
+        else:
+            return 1
+
+    def check_sym_type(self, tol=TOLERANCE):
+        '''
+        Check the symmetry type of the molecule. (linear, symmetric, asymmetric, spherical)
+
+        Linear:
+        IA = IB != 0, IC = 0
+
+        Returns:
+            type: string
+
+        '''
+        # [IA-IB, IB-IC, IA-IC]
+        mmt = sorted(self.prin_mmt)
+
+        if abs(mmt[0]) < tol and mmt[1] == mmt[2]:
+            print(self.mol.name, "is a linear molecule.")
+            return "linear"
+        if self.degeneracy == 3:
+            print(self.mol.name, "is a spherical molecule.")
+            return "spherical"
+        if self.degeneracy == 2:
+            print(self.mol.name, "is a symmetric molecule.")
+            return "symmetric"
+        if self.degeneracy == 1:
+            print(self.mol.name, "is an asymmetric molecule.")
+            return "asymmetric"
+        return
+        
+
+
+
+    def check_symmetry(self):
+        '''
+        Check the symmetry of the molecule.
+        '''
+
+        if self.mol.natm == 1:
+            self.spg = 'R3'
+            return
+        
+        # if self.prin_mmt
+
+
+        return
 
 
 # test to check if the function works
 
 def test_mol():
-    water = mol_parser.from_mol('../tests/water.mol')
+    water = mol_parser.from_mol('../tests/testset/4_Cs.mol')
+    # water = mol_parser.from_mol('../tests/mol_samples/H2O2.mol')
+
     water.build()
     water_spg = SPG(water)
+    mol_parser.to_mol(water, water.name + '_original')
     water_spg.build()
-    print(water_spg.mol.coordinates)
-    mol_parser.to_mol(water, 'water_original')
-    water_spg.align_axes()
-    print(water_spg.mol.coordinates)
-    mol_parser.to_mol(water_spg.mol, 'water_aligned')
+    mol_parser.to_mol(water_spg.mol, water.name + '_aligned')
 
     return
 
