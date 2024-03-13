@@ -38,6 +38,34 @@ def test_inversion_H2O(c1,c2,c3):
     return inv
 H2O=[['H' [0.0, 0.0, 0.0]],['H' [0.0, 0.0, 1.0]],['O' [0.0, 1.0, 0.0]]]
 
+def test_inversion(cd):
+    atom1=False
+    atom2=False
+    atom3=False
+    atm1=cd.coordinates[0].tolist()
+    atm1.append(cd.atm_name[0])
+    atm2=cd.coordinates[1].tolist()
+    atm2.append(cd.atm_name[1])
+    atm3=cd.coordinates[2].tolist()
+    atm3.append(cd.atm_name[2])
+    i1=invert(atm1)
+    i2=invert(atm2)
+    i3=invert(atm3)
+
+    if i1==atm1 or i1==atm2 or i1==atm3:
+        atom1=True
+    if i2==atm1 or i2==atm2 or i2==atm3:
+        atom2=True
+    if i3==atm1 or i3==atm2 or i3==atm3:
+        atom3=True
+    
+    if atom1==True and atom2==True and atom3==True:
+        print("There is an inversion center")
+        inv=True
+    else:
+        print("No inversion center")
+        inv=False
+    return inv
 
 mol_test=Molecule(H2O,3,['H', 'H', 'O'],[1, 1, 8],[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
 mol_test.natm
