@@ -1,5 +1,6 @@
 from sympy import deg
-import mol_parser, data, sym_op
+#import mol_parser, data, sym_op
+import data, sym_op
 from utils import *
 import numpy as np
 from data import INERTIA_TOLERANCE, TOLERANCE, DEG_TOLERANCE, DEGENERACY_TOLERANCE
@@ -270,17 +271,17 @@ class SPG(Molecule):
 
 # test to check if the function works
 
-def test_mol():
-    water = mol_parser.from_mol('../tests/testset/4_Cs.mol')
-    # water = mol_parser.from_mol('../tests/mol_samples/H2O2.mol')
+# def test_mol():
+#     water = mol_parser.from_mol('../tests/testset/4_Cs.mol')
+#     # water = mol_parser.from_mol('../tests/mol_samples/H2O2.mol')
 
-    water.build()
-    water_spg = SPG(water)
-    mol_parser.to_mol(water, water.name + '_original')
-    water_spg.build()
-    mol_parser.to_mol(water_spg.mol, water.name + '_aligned')
+#     water.build()
+#     water_spg = SPG(water)
+#     mol_parser.to_mol(water, water.name + '_original')
+#     water_spg.build()
+#     mol_parser.to_mol(water_spg.mol, water.name + '_aligned')
 
-    return
+#     return
 
-if __name__ == "__main__":
-    test_mol()
+# if __name__ == "__main__":
+#     test_mol()

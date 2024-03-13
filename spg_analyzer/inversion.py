@@ -1,5 +1,5 @@
 
-from spg import *
+from spg import Molecule
 
 at1=[0.8110,-0.4677,-0.0000,"H"]
 at2=[-0.0000,0.0589,0.0000,"O"]
