@@ -70,7 +70,7 @@ class Molecule:
             if atm in data.atom_dict:
                 num_list.append(data.atom_dict[atm])
             else:
-                RuntimeError(f"Atom {atm} not valid.")
+                raise ValueError(f"Atom {atm} not valid.")
         return num_list
     
     # Get atomic mass from atomic number
