@@ -3,7 +3,7 @@ import math
 from spg import Molecule
 
 # Rotation matrix function around the 3 main axis
-def rotate_matrix_x (x, y, z, angle, atom, x_shift=0, y_shift=0, z_shift=0, units="DEGREES"):
+def rotate_matrix_x (x, y, z, angle, atom, units="DEGREES"):
 
     # Shift to origin (0,0)
     x = x - x_shift
@@ -20,7 +20,7 @@ def rotate_matrix_x (x, y, z, angle, atom, x_shift=0, y_shift=0, z_shift=0, unit
     zr = (y * math.sin(angle)) + (z * math.cos(angle)) + z_shift
 
     return float("{:.4f}".format(xr)), float("{:.4f}".format(yr)), float("{:.4f}".format(zr)), atom
-def rotate_matrix_y (x, y, z, angle, atom, x_shift=0, y_shift=0, z_shift=0, units="DEGREES"):
+def rotate_matrix_y (x, y, z, angle, atom, units="DEGREES"):
 
     # Shift to origin (0,0)
     x = x - x_shift
@@ -37,7 +37,7 @@ def rotate_matrix_y (x, y, z, angle, atom, x_shift=0, y_shift=0, z_shift=0, unit
     zr = (-x * math.sin(angle)) + (z * math.cos(angle)) + z_shift
 
     return float("{:.4f}".format(xr)), float("{:.4f}".format(yr)), float("{:.4f}".format(zr)), atom
-def rotate_matrix_z (x, y, z, angle, atom, x_shift=0, y_shift=0, z_shift=0, units="DEGREES"):
+def rotate_matrix_z (x, y, z, angle, atom, units="DEGREES"):
 
     # Shift to origin (0,0)
     x = x - x_shift
