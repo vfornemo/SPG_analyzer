@@ -63,16 +63,12 @@ test_inversion(mol1)
 
 
 # Rotation matrix function around the 3 main axis
-def rotate_matrix_x (x, y, z, angle, atom, units="DEGREES"):
+def rotate_matrix_x (x, y, z, angle, atom):
 
     # Shift to origin (0,0)
     x = x - x_shift
     y = y - y_shift
     z = z - z_shift
-
-    # Convert degrees to radians
-    if units == "DEGREES":
-        angle = math.radians(angle)
 
     # Rotation matrix multiplication to get rotated x, y & z
     xr = x + x_shift
@@ -123,7 +119,7 @@ mol1.build()
 
 def test_Cn(cd):
 
-    angles=[360/1, 360/2, 360/3, 360/4, 360/5, 360/6, 360/7, 360/8]
+    angles=[2*math.pi/1,  360/2, 360/3, 360/4, 360/5, 360/6, 360/7, 360/8]
     higher=1
     atm_flgx=[]
     atm_flgy=[]
@@ -137,15 +133,16 @@ def test_Cn(cd):
     finalz=0
 
     for i in angles:
-        atm_flg.insert(i,False)
-        atm.append(cd.coordinates[i])
-        atm.append(cd.atm_name[i])
-        #even positions stand for coordinates
-        #odd positions stand for atom name
-        if i%2!=0:
-            rtt_atmx.append(rotate_matrix_x(atm[i-1],angles[i], atm[i]))
-            rtt_atmy.append(rotate_matrix_y(atm[i-1],angles[i], atm[i]))
-            rtt_atmz.append(rotate_matrix_z(atm[i-1],angles[i], atm[i]))
+        for at in range (0,(cd.natm)):
+            atm_flg.insert(at,False)
+            atm.append(cd.coordinates[at])
+            atm.append(cd.atm_name[at])
+            #even positions stand for coordinates
+            #odd positions stand for atom name
+            if at%2!=0:
+                rtt_atmx.append(rotate_matrix_x(atm[at-1],angles[at], atm[at]))
+                rtt_atmy.append(rotate_matrix_y(atm[at-1],angles[at], atm[at]))
+                rtt_atmz.append(rotate_matrix_z(atm[at-1],angles[at], atm[at]))
     
     for j in range (0,len(rtt_atmx)):
         #check if it's possible to put j and k in the same for
