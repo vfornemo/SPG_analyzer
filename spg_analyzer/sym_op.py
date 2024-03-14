@@ -2,45 +2,61 @@
 
 from data import TOLERANCE
 import math
+from spg import Molecule
+
+
 # Inversion
 
-#for H2O molecule
-at1=[0.8110,-0.4677,-0.0000,"H"]
-at2=[-0.0000,0.0589,0.0000,"O"]
-at3=[-0.8110,-0.4677,-0.0000,"H"]
-
-
-def invert(x, y, z, atom):
-    xi=-x
-    yi=-y
-    zi=-z
-    xyzi=[float("{:.4f}".format(xi)), float("{:.4f}".format(yi)), float("{:.4f}".format(zi)),"atom"]
+def invert(coord,atom):
+    xi=-coord[0]
+    yi=-coord[1]
+    zi=-coord[2]
+    xyzi=[float("{:.4f}".format(xi)), float("{:.4f}".format(yi)), float("{:.4f}".format(zi)),atom]
     return xyzi
 
-def test_inversion(c1,c2,c3):
 
-    atom1=False
-    atom2=False
-    atom3=False
-    i1=invert(at1[0],at1[1],at1[2],at1[3])
-    i2=invert(at2[0],at2[1],at2[2],at2[3])
-    i3=invert(at3[0],at3[1],at3[2],at3[3])
+mol1 = Molecule([['H', [0.0, 0.0, 0.0]], 
+   ['H', [0.0, 0.0, 1.0]],
+   ['O', [0.0, 1.0, 0.0]]])
 
-    if i1==at1 or i1==at2 or i1==at3:
-        atom1=True
-    if i2==at1 or i2==at2 or i2==at3:
-        atom2=True
-    if i3==at1 or i3==at2 or i3==at3:
-        atom3=True
+mol1.build()
+
+def test_inversion(cd):
+    atm_flg=[]
+    atm=[]
+    inv_atm=[]
+    final=0
+    for i in range (0,(cd.natm)):
+        atm_flg.insert(i,False)
+        atm.append(cd.coordinates[i])
+        atm.append(cd.atm_name[i])
+        #even positions stand for coordinates
+        #odd positions stand for atom name
+        if i%2!=0:
+            inv_atm.append(invert(atm[i-1],atm[i]))
     
-    if atom1==True and atom2==True and atom3==True:
+    for j in range (0,len(inv_atm)):
+        #check if it's possible to put j and k in the same for
+        for k in range (0,len(inv_atm)):
+            if k%2==0:
+                if inv_atm[j][0:3]==atm[k].tolist():
+                    #add check the type of atom
+                    atm_flg[j]=True
+   
+    for l in range(0,len(atm_flg)):
+        if atm_flg[l]==False:
+            final=final+1
+    
+    if final==0:
         print("There is an inversion center")
         inv=True
     else:
         print("No inversion center")
         inv=False
-    return inv
-# inv1=test_inversion(at1,at2,at3)
+
+    return 
+
+test_inversion(mol1)
 
 
 # Rotation
