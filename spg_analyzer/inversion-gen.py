@@ -36,8 +36,7 @@ def test_inversion(cd):
         #check if it's possible to put j and k in the same for
         for k in range (0,len(inv_atm)):
             if k%2==0:
-                if inv_atm[j][0:3]==atm[k].tolist():
-                    #add check the type of atom
+                if inv_atm[j][0:3]==atm[k].tolist() and inv_atm[j][3]==atm[k+1]:
                     atm_flg[j]=True
    
     for l in range(0,len(atm_flg)):
