@@ -2,10 +2,9 @@ from calendar import c
 import numpy as np
 # symmetry operation functions
 
-from data import TOLERANCE
+from utils import sort_coords, thre_cut
 
 # Inversion
-
 
 
 # Proper Rotation
@@ -65,6 +64,42 @@ def Cn_rot(coord, n, xyz):
 
     return np.dot(rot_mat, coord.T).T 
 
+def check_Cn(coord):
+    '''
+    Check the symmetry of the molecule using Cn (from C8 - C3), excluding C2 and C1.
+
+    Args:
+        coord: coordinates of the molecule
+
+    Returns:
+        order of rotation, n, if the molecule has Cn symmetry, None otherwise.
+    '''
+
+    for i in range(3, 9).__reversed__():
+        rot_z = sort_coords(thre_cut(Cn_rot(coord, i, 'z'), 4))
+        rot_y = sort_coords(thre_cut(Cn_rot(coord, i, 'y'), 4))
+        rot_x = sort_coords(thre_cut(Cn_rot(coord, i, 'x'), 4))
+        coord = sort_coords(thre_cut(coord, 4))
+        # print(f"rot_z: {rot_z}")
+        # print(f"rot_y: {rot_y}")
+        # print(f"rot_x: {rot_x}")
+        # print(f"coord: {coord}")
+
+        if np.array_equal(rot_z, coord):
+            print(f"C{i} rotation about z-axis is a symmetry operation for the molecule.")
+            return i
+        elif np.array_equal(rot_y, coord):
+            print(f"C{i} rotation about y-axis is a symmetry operation for the molecule.")
+            return i
+        elif np.array_equal(rot_x, coord):
+            print(f"C{i} rotation about x-axis is a symmetry operation for the molecule.")
+            return i
+        else:
+            continue
+    
+    print("No Cn (3-8) rotation is a symmetry operation for the molecule.")
+    return None
+    
 
 # Improper Rotation
 
@@ -115,3 +150,30 @@ def reflection(coord, xyz):
     return np.dot(ref_mat, coord.T).T
 
 
+def check_reflection(coord):
+    '''
+    Check the symmetry of the molecule using reflection.
+
+    Args:
+        coord: coordinates of the molecule
+
+    Returns:
+        True if the molecule has reflection symmetry, False otherwise.
+    '''
+
+    ref_xy = thre_cut(reflection(coord, 'xy'))
+    ref_yz = thre_cut(reflection(coord, 'yz'))
+    ref_xz = thre_cut(reflection(coord, 'xz'))
+
+    if np.array_equal(sort_coords(ref_xy), sort_coords(coord)):
+        print("Reflection about xy-plane is a symmetry operation for the molecule.")
+        return True
+    elif np.array_equal(sort_coords(ref_yz), sort_coords(coord)):
+        print("Reflection about yz-plane is a symmetry operation for the molecule.")
+        return True
+    elif np.array_equal(sort_coords(ref_xz), sort_coords(coord)):
+        print("Reflection about xz-plane is a symmetry operation for the molecule.")
+        return True
+    else:
+        print("Reflection is not a symmetry operation for the molecule.")
+        return False

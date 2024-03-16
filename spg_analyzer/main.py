@@ -28,22 +28,7 @@ mol_parser.to_mol(water_spg.mol, water.name + '_aligned')
 
 print(water_spg.mol.coordinates)
 
-rot_z = thre_cut(sym_op.Cn_rot(water_spg.mol.coordinates, 2, 'z'))
-rot_y = thre_cut(sym_op.Cn_rot(water_spg.mol.coordinates, 2, 'y'))
-rot_x = thre_cut(sym_op.Cn_rot(water_spg.mol.coordinates, 2, 'x'))
-
-
-print("rotation_z", rot_z, '\n', sort_coords(rot_z))
-print("rotation_y", rot_y, '\n', sort_coords(rot_y))
-print("rotation_x", rot_x, '\n', sort_coords(rot_x))
-
-
-
-if np.array_equal(sort_coords(rot_z), sort_coords(water_spg.mol.coordinates)):
-    print("C2 rotation about z-axis is a symmetry operation for the molecule.")
-elif np.array_equal(sort_coords(rot_y), sort_coords(water_spg.mol.coordinates)):
-    print("C2 rotation about y-axis is a symmetry operation for the molecule.")
-elif np.array_equal(sort_coords(rot_x), sort_coords(water_spg.mol.coordinates)):
-    print("C2 rotation about x-axis is a symmetry operation for the molecule.")
-else:
-    print("C2 rotation is not a symmetry operation for the molecule.")
+sym_op.check_Cn(water_spg.mol.coordinates)
+# sym_op.test_Cn(water_spg.mol)
+sym_op.check_reflection(water_spg.mol.coordinates)
+# sym_op.test_inversion(water_spg.mol)
