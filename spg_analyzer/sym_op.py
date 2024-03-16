@@ -1,8 +1,12 @@
+from calendar import c
+import numpy as np
+from sympy import I
 # symmetry operation functions
 
 from data import TOLERANCE
 import math
 from spg import Molecule
+from utils import sort_coords, thre_cut
 
 
 # Inversion
@@ -14,12 +18,6 @@ def invert(coord,atom):
     xyzi=[float("{:.4f}".format(xi)), float("{:.4f}".format(yi)), float("{:.4f}".format(zi)),atom]
     return xyzi
 
-
-mol1 = Molecule([['H', [0.0, 0.0, 0.0]], 
-   ['H', [0.0, 0.0, 1.0]],
-   ['O', [0.0, 1.0, 0.0]]])
-
-mol1.build()
 
 def test_inversion(cd):
     atm_flg=[]
@@ -56,70 +54,65 @@ def test_inversion(cd):
 
     return 
 
-test_inversion(mol1)
-
 
 # Rotation
 
 
 # Rotation matrix function around the 3 main axis
-def rotate_matrix_x (x, y, z, angle, atom):
-
-    # Shift to origin (0,0)
-    x = x - x_shift
-    y = y - y_shift
-    z = z - z_shift
+def rotate_matrix_x (coord, angle, atom):
+    x = coord[0]
+    y = coord[1]
+    z = coord[2]
 
     # Rotation matrix multiplication to get rotated x, y & z
-    xr = x + x_shift
-    yr = (y * math.cos(angle)) - (z * math.sin(angle)) + y_shift
-    zr = (y * math.sin(angle)) + (z * math.cos(angle)) + z_shift
+    xr = x
+    yr = (y * math.cos(angle)) - (z * math.sin(angle))
+    zr = (y * math.sin(angle)) + (z * math.cos(angle))
 
     return float("{:.4f}".format(xr)), float("{:.4f}".format(yr)), float("{:.4f}".format(zr)), atom
-def rotate_matrix_y (x, y, z, angle, atom, units="DEGREES"):
 
-    # Shift to origin (0,0)
-    x = x - x_shift
-    y = y - y_shift
-    z = z - z_shift
+
+def rotate_matrix_y (coord, angle, atom, units="rad"):
+
+    x = coord[0]
+    y = coord[1]
+    z = coord[2]
 
     # Convert degrees to radians
-    if units == "DEGREES":
+    if units == "deg":
         angle = math.radians(angle)
 
     # Rotation matrix multiplication to get rotated x, y & z
-    xr = (x * math.cos(angle)) + (z * math.sin(angle)) + x_shift
-    yr = y + y_shift
-    zr = (-x * math.sin(angle)) + (z * math.cos(angle)) + z_shift
+    xr = (x * math.cos(angle)) + (z * math.sin(angle))
+    yr = y
+    zr = (-x * math.sin(angle)) + (z * math.cos(angle))
 
     return float("{:.4f}".format(xr)), float("{:.4f}".format(yr)), float("{:.4f}".format(zr)), atom
-def rotate_matrix_z (x, y, z, angle, atom, units="DEGREES"):
 
-    # Shift to origin (0,0)
-    x = x - x_shift
-    y = y - y_shift
-    z = z - z_shift
+
+def rotate_matrix_z (coord, angle, atom, units="rad"):
+    
+    x = coord[0]
+    y = coord[1]
+    z = coord[2]
 
     # Convert degrees to radians
-    if units == "DEGREES":
+    if units == "deg":
         angle = math.radians(angle)
 
     # Rotation matrix multiplication to get rotated x, y & z
-    xr = (x * math.cos(angle)) - (y * math.sin(angle)) + x_shift
-    yr = (x * math.sin(angle)) + (y * math.cos(angle)) + y_shift
-    zr = z + z_shift
+    xr = (x * math.cos(angle)) - (y * math.sin(angle)) 
+    yr = (x * math.sin(angle)) + (y * math.cos(angle)) 
+    zr = z
 
     return float("{:.4f}".format(xr)), float("{:.4f}".format(yr)), float("{:.4f}".format(zr)), atom
 
-mol1 = Molecule([['H', [0.0, 0.0, 0.0]], 
-   ['H', [0.0, 0.0, 1.0]],
-   ['O', [0.0, 1.0, 0.0]]])
 
-mol1.build()
 
 def test_Cn(cd):
 
-    angles=[2*math.pi/1,  360/2, 360/3, 360/4, 360/5, 360/6, 360/7, 360/8]
+    # generate from 2pi/1 to 2pi/8
+    angles=[2*math.pi/1,  2*math.pi/2, 2*math.pi/3, 2*math.pi/4, 2*math.pi/5, 2*math.pi/6, 2*math.pi/7, 2*math.pi/8]
     higher=1
     atm_flgx=[]
     atm_flgy=[]
@@ -134,7 +127,9 @@ def test_Cn(cd):
 
     for i in angles:
         for at in range (0,(cd.natm)):
-            atm_flg.insert(at,False)
+            atm_flgx.insert(at,False)
+            atm_flgy.insert(at,False)
+            atm_flgz.insert(at,False)
             atm.append(cd.coordinates[at])
             atm.append(cd.atm_name[at])
             #even positions stand for coordinates
@@ -167,21 +162,21 @@ def test_Cn(cd):
         if finalx==0:
             print(f"There is a C{int((m+1)*angles[m])} symmetry operation")
             #main_axis.append('x')
-            rot_x.insert(m,int((m+1)*angles[m]))
+            rtt_atmx.insert(m,int((m+1)*angles[m]))
         if finaly==0:
             print(f"There is a C{int((m+1)*angles[m])} symmetry operation")
             #main_axis.append('y')
-            rot_y.insert(m,int((m+1)*angles[m]))
+            rtt_atmy.insert(m,int((m+1)*angles[m]))
         if finalz==0:
             print(f"There is a C{int((m+1)*angles[m])} symmetry operation")
             #main_axis.append('z')
-            rot_z.insert(m,int((m+1)*angles[m]))
+            rtt_atmz.insert(m,int((m+1)*angles[m]))
             if int((m+1)*angles[m])>higher:
                 higher=int((m+1)*angles[m])
 
-    max_x=max(rot_x)
-    max_y=max(rot_y)
-    max_z=max(rot_z)
+    max_x=max(rtt_atmx)
+    max_y=max(rtt_atmy)
+    max_z=max(rtt_atmz)
     if max_x>max_y and max_x>max_z:
         main_axis='x'
         higher=max_x
@@ -199,4 +194,177 @@ def test_Cn(cd):
     
     return
 
-test_Cn(mol1)
+
+# Proper Rotation
+
+# Cn
+
+def Cn_rot(coord, n, xyz):
+    '''
+    Rotate the coordinates by Cn.
+
+    Args:
+        coord: coordinates of the molecule
+        n: order of rotation, 2, 3, 4, 5, 6, ...
+        xyz: axis of rotation, 'x', 'y', or 'z'
+
+    Rotational matrix:
+    z-axis:
+    [[cos(theta), -sin(theta), 0],
+    [sin(theta),   cos(theta), 0],
+    [     0,          0,       1]]
+
+    y-axis:
+    [[cos(theta), 0, sin(theta)],
+    [     0,      1,     0     ],
+    [-sin(theta), 0, cos(theta)]]
+
+    x-axis:
+    [[1,    0,            0    ],
+    [0, cos(theta), -sin(theta)],
+    [0, sin(theta), cos(theta)]]
+
+    where theta = 2*pi/n
+
+    '''
+    rot_mat = np.zeros((3,3))
+    theta = 2*np.pi/n
+    rot_mat[0][0] = np.cos(theta)
+    rot_mat[0][1] = -np.sin(theta)
+    rot_mat[1][0] = np.sin(theta)
+    rot_mat[1][1] = np.cos(theta)
+    rot_mat[2][2] = 1
+
+    if xyz == 'z':
+        rot_mat = rot_mat
+        # print("rotation matrix z", rot_mat) 
+    elif xyz == 'y':
+        rot_mat = rot_mat.T
+        rot_mat[[1,2],:] = rot_mat[[2,1],:]
+        rot_mat[:,[1,2]] = rot_mat[:,[2,1]]
+        # print("rotation matrix y", rot_mat) 
+    elif xyz == 'x':
+        rot_mat[[0,1,2],:] = rot_mat[[2,0,1],:]
+        rot_mat[:,[0,1,2]] = rot_mat[:,[2,0,1]]
+        # print("rotation matrix x", rot_mat)
+    else:
+        raise ValueError('Invalid axis of rotation.')
+
+    return np.dot(rot_mat, coord.T).T 
+
+def check_Cn(coord):
+    '''
+    Check the symmetry of the molecule using Cn (from C8 - C3), excluding C2 and C1.
+
+    Args:
+        coord: coordinates of the molecule
+
+    Returns:
+        order of rotation, n, if the molecule has Cn symmetry, None otherwise.
+    '''
+
+    for i in range(3, 9).__reversed__():
+        rot_z = sort_coords(thre_cut(Cn_rot(coord, i, 'z'), 4))
+        rot_y = sort_coords(thre_cut(Cn_rot(coord, i, 'y'), 4))
+        rot_x = sort_coords(thre_cut(Cn_rot(coord, i, 'x'), 4))
+        coord = sort_coords(thre_cut(coord, 4))
+        # print(f"rot_z: {rot_z}")
+        # print(f"rot_y: {rot_y}")
+        # print(f"rot_x: {rot_x}")
+        # print(f"coord: {coord}")
+
+        if np.array_equal(rot_z, coord):
+            print(f"C{i} rotation about z-axis is a symmetry operation for the molecule.")
+            return i
+        elif np.array_equal(rot_y, coord):
+            print(f"C{i} rotation about y-axis is a symmetry operation for the molecule.")
+            return i
+        elif np.array_equal(rot_x, coord):
+            print(f"C{i} rotation about x-axis is a symmetry operation for the molecule.")
+            return i
+        else:
+            continue
+    
+    print("No Cn (3-8) rotation is a symmetry operation for the molecule.")
+    return None
+    
+
+# Improper Rotation
+
+# Reflection
+
+def reflection(coord, xyz):
+    '''
+    Reflect the coordinates.
+
+    Args:
+        coord: coordinates of the molecule
+        xyz: plane of reflection, 'xy', 'yz', or 'xz'
+
+    Reflection matrix:
+    xy-plane:
+    [[1, 0, 0],
+    [0, 1, 0],
+    [0, 0, -1]]
+
+    yz-plane:
+    [[-1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1]]
+
+    xz-plane:
+    [[1, 0, 0],
+    [0, -1, 0],
+    [0, 0, 1]]
+
+    '''
+
+    ref_mat = np.zeros((3,3))
+    if xyz == 'xy':
+        ref_mat[0][0] = 1
+        ref_mat[1][1] = 1
+        ref_mat[2][2] = -1
+    elif xyz == 'yz':
+        ref_mat[0][0] = -1
+        ref_mat[1][1] = 1
+        ref_mat[2][2] = 1
+    elif xyz == 'xz':
+        ref_mat[0][0] = 1
+        ref_mat[1][1] = -1
+        ref_mat[2][2] = 1
+    else:
+        raise ValueError('Invalid plane of reflection.')
+    
+    return np.dot(ref_mat, coord.T).T
+
+
+def check_reflection(coord):
+    '''
+    Check the symmetry of the molecule using reflection.
+
+    Args:
+        coord: coordinates of the molecule
+
+    Returns:
+        True if the molecule has reflection symmetry, False otherwise.
+    '''
+
+    ref_xy = thre_cut(reflection(coord, 'xy'))
+    ref_yz = thre_cut(reflection(coord, 'yz'))
+    ref_xz = thre_cut(reflection(coord, 'xz'))
+
+    if np.array_equal(sort_coords(ref_xy), sort_coords(coord)):
+        print("Reflection about xy-plane is a symmetry operation for the molecule.")
+        return True
+    elif np.array_equal(sort_coords(ref_yz), sort_coords(coord)):
+        print("Reflection about yz-plane is a symmetry operation for the molecule.")
+        return True
+    elif np.array_equal(sort_coords(ref_xz), sort_coords(coord)):
+        print("Reflection about xz-plane is a symmetry operation for the molecule.")
+        return True
+    else:
+        print("Reflection is not a symmetry operation for the molecule.")
+        return False
+    
+
+
