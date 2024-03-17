@@ -23,7 +23,12 @@ def delta(i, j):
 
 def distance(coord1, coord2=[0, 0, 0]):
     '''
-    Calculate the distance between two points.
+    Calculate the distance between two points. If coord2 is not given, the distance from the origin is calculated.
+
+    Args:
+        coord1: list of [x, y, z]
+        coord2: list of [x, y, z]   
+
     '''
     return ((coord1[0] - coord2[0])**2 + (coord1[1] - coord2[1])**2 + (coord1[2] - coord2[2])**2)**0.5
 
@@ -61,6 +66,16 @@ def sph2car(coords):
         car[i][2] = coords[i][0]*np.cos(coords[i][1]) # z
     return car
 
+def sort_coords(coords):
+    '''
+    Sort the coordinates based on the x, y, z values.
+    The sorting will first be based on the x values, then y values, then z values.
+    This is useful for comparing the coordinates of the molecule before and after symmetric operations.
+    '''
+    sorted_idx = np.lexsort((coords[:, 2], coords[:, 1], coords[:, 0]))
+
+    return coords[sorted_idx]
+
 def thre_cut(x, thre=6):
     '''
     Cut the number to given decimal places.
@@ -71,3 +86,4 @@ def thre_cut(x, thre=6):
     
     '''
     return np.around(x, thre)
+
