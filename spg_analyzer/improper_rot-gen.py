@@ -105,17 +105,16 @@ def check_Sn(coord):
         # print(f"coord: {coord}")
 
         if np.array_equal(irot_z, coord):
-            print(f"S{i} rotation around z-axis is a symmetry operation for the molecule.")
+            print(f"S{i} improper rotation around z-axis is a symmetry operation for the molecule.")
             return i
         elif np.array_equal(rot_y, coord):
-            print(f"S{i} rotation around y-axis is a symmetry operation for the molecule.")
+            print(f"S{i} improper rotation around y-axis is a symmetry operation for the molecule.")
             return i
         elif np.array_equal(rot_x, coord):
-            print(f"S{i} rotation around x-axis is a symmetry operation for the molecule.")
+            print(f"S{i} improper rotation around x-axis is a symmetry operation for the molecule.")
             return i
         else:
             continue
     
     print("No Sn (3-8) rotation is a symmetry operation for the molecule.")
     return None
-
