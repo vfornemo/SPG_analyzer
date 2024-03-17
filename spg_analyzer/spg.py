@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 from sympy import deg
 #import mol_parser, data, sym_op
 import data, sym_op
+=======
+import data
+>>>>>>> origin/main
 from utils import *
 import numpy as np
 from data import INERTIA_TOLERANCE, TOLERANCE, DEG_TOLERANCE, DEGENERACY_TOLERANCE
@@ -9,13 +13,13 @@ from data import INERTIA_TOLERANCE, TOLERANCE, DEG_TOLERANCE, DEGENERACY_TOLERAN
 
 
 
-# Define a class called Molecule, which has the following attributes:
+# Molecule class, which has the following attributes:
 # 1. mol: a 2D list of atom names and coordinates (cartesian) (like pyscf)
 # atom name: string, coordinates: array of floats
 # Example:
-#  [['H' [0.0, 0.0, 0.0]], 
-#   ['H' [0.0, 0.0, 1.0]],
-#   ['O' [0.0 1.0 0.0]]]
+#  [['H', [0.0, 0.0, 0.0]], 
+#   ['H', [0.0, 0.0, 1.0]],
+#   ['O', [0.0 1.0 0.0]]]
 
 # 2. natm: number of atoms in the molecule e.g. 3
 # 3. atm_name: list of atom names  ['H', 'H', 'O'] 
@@ -25,6 +29,19 @@ from data import INERTIA_TOLERANCE, TOLERANCE, DEG_TOLERANCE, DEGENERACY_TOLERAN
 
 
 class Molecule:
+    '''
+    Molecule class, which has the following attributes:
+    1. name: name of the molecule
+    2. natm: number of atoms in the molecule
+    3. atm_name: list of atom names
+    4. atm_num: atomic numbers sequence
+    5. atm_mass: atomic mass sequence
+    6. coordinates: list of atom coordinates
+    7. headblock: header block of the molecule
+    8. atmblock: atom block of the molecule
+    9. bondblocktoend: bond block to the end of the molecule
+
+    '''
     def __init__(self, mol):
         self.name = "mol"
         # number of atoms
@@ -59,7 +76,7 @@ class Molecule:
             if atm in data.atom_dict:
                 num_list.append(data.atom_dict[atm])
             else:
-                RuntimeError(f"Atom {atm} not valid.")
+                raise ValueError(f"Atom {atm} not valid.")
         return num_list
     
     # Get atomic mass from atomic number
@@ -106,6 +123,16 @@ class Molecule:
     
 
 class SPG(Molecule):
+    '''
+    SPG class, inherited from Molecule class, which has the following attributes:
+    1. mol: Molecule object
+    2. inertia: inertia tensor of the molecule
+    3. prin_mmt: principal moments of inertia
+    4. prin_axes: principal axes of inertia
+    5. degeneracy: degeneracy of the molecule
+    6. sym_type: symmetry type of the molecule
+    '''
+
     def __init__(self, mol):
         '''
         Args:
@@ -269,6 +296,7 @@ class SPG(Molecule):
         return
 
 
+<<<<<<< HEAD
 # test to check if the function works
 
 # def test_mol():
@@ -283,5 +311,7 @@ class SPG(Molecule):
 
 #     return
 
+=======
+>>>>>>> origin/main
 # if __name__ == "__main__":
 #     test_mol()
