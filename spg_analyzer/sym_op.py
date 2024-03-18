@@ -116,11 +116,11 @@ def check_Cn(atm_list, coord, return_axis=False, mode='medium'):
         rot_y = Cn_rot(coord, i, 'y')
         rot_x = Cn_rot(coord, i, 'x')
 
-        print(f"Check C{i} rotation about x, y, z axis.")
-        print(f"rot_z: {rot_z}")
-        print(f"rot_y: {rot_y}")
-        print(f"rot_x: {rot_x}")
-        print(f"coord: {coord}")
+        # print(f"Check C{i} rotation about x, y, z axis.")
+        # print(f"rot_z: {rot_z}")
+        # print(f"rot_y: {rot_y}")
+        # print(f"rot_x: {rot_x}")
+        # print(f"coord: {coord}")
 
         if compare_coords(atm_list, rot_z, coord, mode):
             print(f"C{i} rotation about z-axis found in the molecule.")
@@ -131,13 +131,13 @@ def check_Cn(atm_list, coord, return_axis=False, mode='medium'):
         elif compare_coords(atm_list, rot_y, coord, mode):
             print(f"C{i} rotation about y-axis found in the molecule.")
             if return_axis:
-                return i, [0, 0, 1]
+                return i, [0, 1, 0]
             else:
                 return i
         elif compare_coords(atm_list, rot_x, coord, mode):
             print(f"C{i} rotation about x-axis found in the molecule.")
             if return_axis:
-                return i, [0, 0, 1]
+                return i, [1, 0, 0]
             else:
                 return i
         else:

@@ -351,9 +351,11 @@ class SPG(Molecule):
         Check the symmetry of the symmetric molecule.
 
         Possible point groups:
-        Dnh, Dnd, Dn, Cnh, Cnv
+        Dnh, Dnd, Dn, Cnh, Cnv, S2n
 
         Symmetric elements:
+
+        S2n:
 
         Cnv:
         C3v: E 2C3 3sigma_v
@@ -400,21 +402,26 @@ class SPG(Molecule):
                 self.spg = "D" + str(Cn) + "h"
             else:
                 # Dnd or Dn
-                Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 12, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 12, self.mode))
+                Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 16, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 16, self.mode))
                 if Sn:
                     self.so.append("S" + str(Sn))
                     self.spg = "D" + str(Cn) + "d"
                 else:
                     self.spg = "D" + str(Cn)
         else:
-            # Cnh Cnv
+            # Cnh Cnv S2n
             if check_reflection_h(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode):
                 # Cnh
                 self.so.append("sigma_h")
                 self.spg = "C" + str(Cn) + "h"
             else:
-                # Cnv
-                self.spg = "C" + str(Cn) + "v"
+                # Cnv S2n
+                Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 8, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 8, self.mode))
+                if Sn:
+                    self.so.append("S" + str(Sn))
+                    self.spg = "S" + str(2*Cn)
+                else:
+                    self.spg = "C" + str(Cn) + "v"
 
         return
 
