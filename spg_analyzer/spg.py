@@ -1,4 +1,3 @@
-from tabnanny import check
 import data
 from sym_op import *
 from utils import *
@@ -114,9 +113,6 @@ class Molecule:
 
 # Define a class called SPG(symmetric point group), inherited from Molecule class, which has the following attributes:
 # This class is used to analyze the point group of a molecule
-# 1. name: name of the point group
-# 2. mol: molecule object
-    
 
 class SPG(Molecule):
     '''
@@ -127,6 +123,9 @@ class SPG(Molecule):
     4. prin_axes: principal axes of inertia
     5. degeneracy: degeneracy of the molecule
     6. sym_type: symmetry type of the molecule
+    7. so: symmetric operations of the molecule (distinguishable SOs for point group determination)
+    8. spg: point group of the molecule
+    9. mode: tolerance mode, 'ultra_loose', 'super_loose', 'loose', 'medium', 'tight', 'very_tight', default is 'medium'
     '''
 
     def __init__(self, mol):
@@ -135,6 +134,8 @@ class SPG(Molecule):
             mol: Molecule object
         '''
         self.mol = mol
+        self.so = []
+        self.mode = "medium"
 
     def build(self):
         '''
@@ -143,6 +144,7 @@ class SPG(Molecule):
         '''
         if self.mol.natm == 1:
             self.spg = 'Kh'
+            self.sym_type = 'spherical'
             return
 
         self.inertia_tensor()
@@ -162,14 +164,7 @@ class SPG(Molecule):
         # print("symmetry type", self.sym_type)
 
         # check the symmetry of the molecule
-        if self.sym_type == "linear":
-            self.check_symmetry_linear()
-        elif self.sym_type == "asymmetric":
-            self.check_symmetry_asymmetric()
-        elif self.sym_type == "symmetric":
-            self.check_symmetry_symmetric()
-        elif self.sym_type == "spherical":
-            self.check_symmetry_spherical()
+        self.check_symmetry()
 
         return
 
@@ -292,20 +287,40 @@ class SPG(Molecule):
         if abs(mmt[0]) < tol and mmt[1] == mmt[2]:
             print(self.mol.name, "is a linear molecule.")
             self.sym_type =  "linear"
-        if self.degeneracy == 3:
+        elif self.degeneracy == 3:
             print(self.mol.name, "is a spherical molecule.")
             self.sym_type =  "spherical"
-        if self.degeneracy == 2:
+        elif self.degeneracy == 2:
             print(self.mol.name, "is a symmetric molecule.")
             self.sym_type =  "symmetric"
-        if self.degeneracy == 1:
+        elif self.degeneracy == 1:
             print(self.mol.name, "is an asymmetric molecule.")
             self.sym_type =  "asymmetric"
+        else:
+            print("Symmetry type undetermined.")
+            self.sym_type =  None
+        return
+    
+    def check_symmetry(self):
+        if self.sym_type == "linear":
+            self.check_symmetry_linear()
+        elif self.sym_type == "asymmetric":
+            self.check_symmetry_asym()
+        elif self.sym_type == "symmetric":
+            self.check_symmetry_sym()
+        elif self.sym_type == "spherical":
+            self.check_symmetry_sph()
+        else:
+            print("Symmetry type undetermined.")
+            self.spg = "TBD"
         return
 
     def check_symmetry_linear(self):
         '''
         Check the symmetry of the linear molecule.
+
+        Possible point groups:
+        Coov, Dooh
 
         If the molecule has a inversion center, it is Dooh, otherwise it is Coov.
 
@@ -314,31 +329,96 @@ class SPG(Molecule):
         Coov: E 2C∞ sigma_v
         '''
 
-        inv = check_inversion(self.mol.coordinates)
+        inv = check_inversion(self.mol.atm_name, self.mol.coordinates)
         if inv:
-            return "Dooh"
+            self.so.append("i")
+            self.spg = "Dooh"
         else:
-            return "Coov"
+            self.spg = "Coov"
+        return
 
-    def check_symmetry_asymmetric(self):
+    def check_symmetry_asym(self):
         '''
         Check the symmetry of the asymmetric molecule.
         '''
 
-
+        self.spg = "TBD"
 
         return
 
-    def check_symmetry_symmetric(self):
+    def check_symmetry_sym(self):
         '''
         Check the symmetry of the symmetric molecule.
+
+        Possible point groups:
+        Dnh, Dnd, Dn, Cnh, Cnv
+
+        Symmetric elements:
+
+        Cnv:
+        C3v: E 2C3 3sigma_v
+        C4v: E 2C4 C2 2sigma_v 2sigma_d
+        C5v: E 2C5 2C5 5sigma_v
+        C6v: E 2C6 2C3 C2 3sigma_v 3sigma_d
+        
+        Cnh:
+        C3h: E 2C3 sigma_h 2S3
+        C4h: E 2C4 C2 i 2S4 sigma_h
+        C5h: E 2C5 2C5 sigma_h 2S5 2S5
+        C6h: E 2C6 2C3 C2 i 2S6 2S3 sigma_h
+
+        Dn:
+        D3: E 2C3 3C2
+        D4: E 2C4 C2 2C2 2C2
+        D5: E 2C5 2C5 5C2
+        D6: E 2C6 2C3 C2 3C2 3C2
+
+        Dnd:
+        D3d: E 2C3 3C2 i 2S6 3sigma_d
+        D4d: E 2S8 2C4 2S8 C2 4C2 4sigma_d
+        D5d: E 2C5 2C5 5C2 i 2S10 2S10 5sigma_d
+        D6d: E 2S12 2C6 2S4 2C3 2S12 C2 6C2 6sigma_d
+
+        Dnh:
+        D3h: E 2C3 3C2 sigma_h 2S3 3sigma_v
+        D4h: E 2C4 C2 2C2 2C2 i 2S4 sigma_h 2sigma_v 2sigma_d
+        D5h: E 2C5 2C5 5C2 sigma_h 2S5 2S5 5sigma_v
+        D6h: E 2C6 2C3 C2 3C2 3C2 i 2S6 2S3 sigma_h 3sigma_v 3sigma_d
+        
         '''
+        Cn, self.Cn_axis = check_Cn(self.mol.atm_name, self.mol.coordinates, True, self.mode)
+        nC2 = check_C2_perp_Cn(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode)
+        self.so.append("C" + str(Cn))
+        if nC2:
+            self.so.append(str(nC2) + "C2")
 
-
+        if nC2 >= 1 and Cn >= 2:
+            # Dnh Dnd Dn
+            if check_reflection_h(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode):
+                # Dnh
+                self.so.append("sigma_h")
+                self.spg = "D" + str(Cn) + "h"
+            else:
+                # Dnd or Dn
+                Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 12, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 12, self.mode))
+                if Sn:
+                    self.so.append("S" + str(Sn))
+                    self.spg = "D" + str(Cn) + "d"
+                else:
+                    self.spg = "D" + str(Cn)
+        else:
+            # Cnh Cnv
+            if check_reflection_h(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode):
+                # Cnh
+                self.so.append("sigma_h")
+                self.spg = "C" + str(Cn) + "h"
+            else:
+                # Cnv
+                self.spg = "C" + str(Cn) + "v"
 
         return
 
-    def check_symmetry_spherical(self):
+    def check_symmetry_sph(self):
         '''
         Check the symmetry of the spherical molecule.
 
@@ -363,7 +443,6 @@ class SPG(Molecule):
 
         '''
 
-
         # First check inversion
         # Yes -> Ih, Oh, Th, No -> I, O, Td, Th
         # Check the highest Cn
@@ -371,27 +450,45 @@ class SPG(Molecule):
         # Check the highest Sn
         # 6 -> Th, 4 -> Td
 
-        Cn = max(check_Cn_extd(self.mol.coordinates), check_Cn(self.mol.coordinates))
+        Cn1, Cn_axis1 = check_Cn(self.mol.atm_name, self.mol.coordinates, True, self.mode)
+        Cn2, Cn_axis2 = check_Cn_extd(self.mol.atm_name, self.mol.coordinates, True, self.mode)
+
+        if Cn1 > Cn2:
+            Cn = Cn1
+            self.Cn_axis = Cn_axis1
+        else:
+            Cn = Cn2
+            self.Cn_axis = Cn_axis2
+
         # print("Cn", Cn)
 
-        if check_inversion(self.mol.coordinates):
+        if check_inversion(self.mol.atm_name, self.mol.coordinates, self.mode):
+            self.so.append("i")
             if Cn == 5:
+                self.so.append("C5")
                 self.spg = "Ih"
             elif Cn == 4:
+                self.so.append("C4")
                 self.spg = "Oh"
             elif Cn == 3:
+                self.so.append("C3")
                 self.spg = "Th"
         else:
             if Cn == 5:
+                self.so.append("C5")
                 self.spg = "I"
             elif Cn == 4:
+                self.so.append("C4")
                 self.spg = "O"
             elif Cn == 3:
-                Sn = max(check_Sn_extd(self.mol.coordinates), check_Sn(self.mol.coordinates))
+                self.so.append("C3")
+                Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 10, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 10, self.mode))
                 # print("Sn", Sn)
                 if Sn == 6:
-                    self.spg = "Th"
+                    self.so.append("S6")
+                    self.spg = "TBD"
                 elif Sn == 4:
+                    self.so.append("S4")
                     self.spg = "Td"
                 else:
                     self.spg = "T"

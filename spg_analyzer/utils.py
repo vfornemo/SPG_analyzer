@@ -12,7 +12,7 @@ Functions:
 
 import numpy as np
 
-from data import TOLERANCE
+from data import TOLERANCE, tol_map
 
 # Kronecker delta
 def delta(i, j):
@@ -66,7 +66,7 @@ def sph2car(coords):
         car[i][2] = coords[i][0]*np.cos(coords[i][1]) # z
     return car
 
-def sort_coords(coords):
+def sort_coords_idx(coords):
     '''
     Sort the coordinates based on the x, y, z values.
     The sorting will first be based on the x values, then y values, then z values.
@@ -74,7 +74,23 @@ def sort_coords(coords):
     '''
     sorted_idx = np.lexsort((coords[:, 2], coords[:, 1], coords[:, 0]))
 
+    return sorted_idx
+
+def sort_coords(coords, sorted_idx):
+    '''
+    Return the sorted coordinates based on the sorted index.
+    '''
+
     return coords[sorted_idx]
+
+def sort_atoms(atm_list, sorted_idx):
+    '''
+    Return the sorted atom list based on the sorted coordinates.
+    '''
+  
+    atm_list = np.array(atm_list)
+
+    return atm_list[sorted_idx]
 
 def thre_cut(x, thre=6):
     '''
@@ -86,4 +102,35 @@ def thre_cut(x, thre=6):
     
     '''
     return np.around(x, thre)
+
+def compare_coords(atm_list, coords1, coords2, mode = 'medium'):
+    '''
+    Compare two sets of coordinates to see if they are the same within a tolerance.
+    The coordinates are first sorted, then compared.
+    '''
+
+    if mode == 'medium':
+        cut = 3
+    elif mode == 'tight' or mode == 'very_tight':
+        cut = 4
+    elif mode == 'loose':
+        cut = 2
+    elif mode == 'very_loose':
+        cut = 1
+    else:
+        cut = 3
+
+    coords1 = thre_cut(coords1, cut)
+    coords2 = thre_cut(coords2, cut)
+
+    sorted_idx1 = sort_coords_idx(coords1)
+    sorted_idx2 = sort_coords_idx(coords2)
+
+    atm1 = sort_atoms(atm_list, sorted_idx1)
+    atm2 = sort_atoms(atm_list, sorted_idx2)
+    
+    coords1 = sort_coords(coords1, sorted_idx1)
+    coords2 = sort_coords(coords2, sorted_idx2)
+
+    return np.array_equal(atm1, atm2) and np.allclose(coords1, coords2, atol=tol_map[mode])
 

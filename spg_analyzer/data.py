@@ -3,10 +3,33 @@ This file contains the element data for the spg_analyzer package.
 
 """
 
+from termios import VLNEXT
+from zmq import MECHANISM
+
+
 TOLERANCE = 1e-5
 DEG_TOLERANCE = 4.0
 INERTIA_TOLERANCE = 1e-3
 DEGENERACY_TOLERANCE = 1e-2
+
+VERY_TIGHT_TOLERANCE = 1e-4
+TIGHT_TOLERANCE = 1e-3
+MEDIUM_TOLERANCE = 1e-2
+LOOSE_TOLERANCE = 1e-1
+VERY_LOOSE_TOLERANCE = 0.3
+SUPER_LOOSE_TOLERANCE = 0.5
+ULTRA_LOOSE_TOLERANCE = 1.0
+
+tol_map = {
+    "very_tight": VERY_TIGHT_TOLERANCE,
+    "tight": TIGHT_TOLERANCE,
+    "medium": MEDIUM_TOLERANCE,
+    "loose": LOOSE_TOLERANCE,
+    "very_loose": VERY_LOOSE_TOLERANCE,
+    "super_loose": SUPER_LOOSE_TOLERANCE,
+    "ultra_loose": ULTRA_LOOSE_TOLERANCE,
+}
+
 
 atom_data = [
     # atomic number, symbols, names, masses, bohr radius
@@ -254,11 +277,27 @@ atom_dict = {
     'Og' : 118,
 }
 
+# Extended axis for finding the symmetry operations
+# Including 1 the axis between the x, y, and z axix
+#          [[ 1,  1, 0], [ 1, 0,  1], [0,  1,  1], 
+#           [-1,  1, 0], [-1, 0,  1], [0, -1,  1],
+#           [ 1, -1, 0], [ 1, 0, -1], [0,  1, -1],
+#           [-1, -1, 0], [-1, 0, -1], [0, -1, -1],
+#           2 the axis among the x, y, and z axix
+#           [1, 1, 1], 
+#           [-1, 1, 1], [1, -1, 1], [1, 1, -1], 
+#           [-1, -1, 1], [-1, 1, -1], [1, -1, -1], 
+#           [-1, -1, -1]]
+# Actually, [1, 1, 1] is the same as [-1, -1, -1], so we can simplify the list
+
 extend_axis = [[ 1,  1, 0], [ 1, 0,  1], [0,  1,  1], 
                      [-1,  1, 0], [-1, 0,  1], [0, -1,  1],
-                     [ 1, -1, 0], [ 1, 0, -1], [0,  1, -1],
-                     [-1, -1, 0], [-1, 0, -1], [0, -1, -1],
                      [1, 1, 1], 
-                     [-1, 1, 1], [1, -1, 1], [1, 1, -1], 
-                     [-1, -1, 1], [-1, 1, -1], [1, -1, -1], 
-                     [-1, -1, -1]]
+                     [-1, 1, 1], [1, -1, 1], [1, 1, -1]]
+
+full_axis = [[1, 0, 0], [0, 1, 0], [0, 0, 1],
+                    [ 1,  1, 0], [ 1, 0,  1], [0,  1,  1], 
+                     [-1,  1, 0], [-1, 0,  1], [0, -1,  1],
+                     [1, 1, 1], 
+                     [-1, 1, 1], [1, -1, 1], [1, 1, -1]]
+
