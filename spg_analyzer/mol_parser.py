@@ -10,6 +10,7 @@ Functions:
 """
 
 
+from genericpath import exists
 from spg import Molecule
 '''
 example mol file
@@ -39,6 +40,9 @@ def from_mol(molfile):
     """
     # .mol file contains several blocks, first three lines are header, then atom block, then bond block, then properties block.
     # We only need the atom block.
+    
+    if exists(molfile) == False:
+        raise FileNotFoundError(f'File does not exist in {molfile}.')
     
     f = open(molfile, 'r')
     lines = f.readlines()

@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-from sympy import deg
-#import mol_parser, data, sym_op
-import data, sym_op
-=======
+from tabnanny import check
 import data
->>>>>>> origin/main
+from sym_op import *
 from utils import *
 import numpy as np
 from data import INERTIA_TOLERANCE, TOLERANCE, DEG_TOLERANCE, DEGENERACY_TOLERANCE
@@ -145,24 +141,35 @@ class SPG(Molecule):
         Build the data for symmetry analysis, including computing the inertia tensor, principal moments and axes of inertia, 
         and aligning the principal axes of inertia with the x, y, z axes.
         '''
-        self.inertia = self.inertia_tensor()
+        if self.mol.natm == 1:
+            self.spg = 'Kh'
+            return
+
+        self.inertia_tensor()
+
         # principal moments and axes of inertia
-        self.prin_mmt, self.prin_axes = self.principal_moments_axes()
-        self.prin_mmt = thre_cut(self.prin_mmt)
-        print("principal moment", self.prin_mmt)
-        self.prin_axes = thre_cut(self.prin_axes)
-        print("principal axes", self.prin_axes)
+        self.principal_moments_axes()
 
         # align the principal axes of inertia with the x, y, z axes
         self.align_axes()
 
         # check the degeneracy of the molecule
-        self.degeneracy = self.check_degeneracy()
+        self.check_degeneracy()
+        # print("degeneracy", self.degeneracy)
 
         # check the symmetry type of the molecule
-        self.sym_type = self.check_sym_type()
+        self.check_sym_type()
+        # print("symmetry type", self.sym_type)
 
-
+        # check the symmetry of the molecule
+        if self.sym_type == "linear":
+            self.check_symmetry_linear()
+        elif self.sym_type == "asymmetric":
+            self.check_symmetry_asymmetric()
+        elif self.sym_type == "symmetric":
+            self.check_symmetry_symmetric()
+        elif self.sym_type == "spherical":
+            self.check_symmetry_spherical()
 
         return
 
@@ -182,7 +189,9 @@ class SPG(Molecule):
         tol = int(-np.log10(tol))
         tensor = thre_cut(tensor, tol)
         print("inertia tensor after threshold cut", tensor)
-        return tensor
+        self.inertia = tensor
+
+        return 
     
     def principal_moments_axes(self):
         '''
@@ -196,8 +205,13 @@ class SPG(Molecule):
         eig_val, eig_vec = np.linalg.eig(self.inertia)
         # eig_val is the principal moments of inertia
         # eig_vec is the principal axes of inertia
-        
-        return eig_val, eig_vec	
+
+        self.prin_mmt = thre_cut(eig_val)
+        print("principal moment", self.prin_mmt)
+        self.prin_axes = thre_cut(eig_vec)
+        print("principal axes", self.prin_axes)
+
+        return
 
     def align_axes(self, tol = DEG_TOLERANCE):
         '''
@@ -220,10 +234,10 @@ class SPG(Molecule):
         rot_mat = np.zeros((3, 3))
         for i in range(3):
             for j in range(3):
-                rot_mat[i][j] = np.dot(self.prin_axes[i], xyz_axis[j])
+                rot_mat[i][j] = np.matmul(self.prin_axes[i], xyz_axis[j])
         
         # align the principal axes with the x, y, z axes
-        self.mol.coordinates = np.dot(self.mol.coordinates, rot_mat)
+        self.mol.coordinates = np.matmul(self.mol.coordinates, rot_mat)
         self.mol.coordinates = thre_cut(self.mol.coordinates)
         return
     
@@ -242,13 +256,15 @@ class SPG(Molecule):
         # [IA-IB, IB-IC, IA-IC]
         mmt_diff = np.array([abs(self.prin_mmt[0] - self.prin_mmt[1]), abs(self.prin_mmt[1] - self.prin_mmt[2]), abs(self.prin_mmt[0] - self.prin_mmt[2])])
         if np.count_nonzero(mmt_diff > tol) == 0:
-            return 3
+            self.degeneracy = 3
         elif np.count_nonzero(mmt_diff > tol) == 2:
-            return 2
+            self.degeneracy = 2
         elif np.count_nonzero(mmt_diff > tol) == 3:
-            return 1
+            self.degeneracy = 1
         else:
-            return 1
+            self.degeneracy = 1
+
+        return
 
     def check_sym_type(self, tol=TOLERANCE):
         '''
@@ -256,6 +272,15 @@ class SPG(Molecule):
 
         Linear:
         IA = IB != 0, IC = 0
+
+        Symmetric (degeneracy = 2):
+        IA = IB != IC
+
+        Asymmetric (degeneracy = 1):
+        IA != IB != IC
+
+        Spherical (degeneracy = 3):
+        IA = IB = IC
 
         Returns:
             type: string
@@ -266,52 +291,114 @@ class SPG(Molecule):
 
         if abs(mmt[0]) < tol and mmt[1] == mmt[2]:
             print(self.mol.name, "is a linear molecule.")
-            return "linear"
+            self.sym_type =  "linear"
         if self.degeneracy == 3:
             print(self.mol.name, "is a spherical molecule.")
-            return "spherical"
+            self.sym_type =  "spherical"
         if self.degeneracy == 2:
             print(self.mol.name, "is a symmetric molecule.")
-            return "symmetric"
+            self.sym_type =  "symmetric"
         if self.degeneracy == 1:
             print(self.mol.name, "is an asymmetric molecule.")
-            return "asymmetric"
-        return
-        
-
-
-
-    def check_symmetry(self):
-        '''
-        Check the symmetry of the molecule.
-        '''
-
-        if self.mol.natm == 1:
-            self.spg = 'R3'
-            return
-        
-        # if self.prin_mmt
-
-
+            self.sym_type =  "asymmetric"
         return
 
+    def check_symmetry_linear(self):
+        '''
+        Check the symmetry of the linear molecule.
 
-<<<<<<< HEAD
-# test to check if the function works
+        If the molecule has a inversion center, it is Dooh, otherwise it is Coov.
 
-# def test_mol():
-#     water = mol_parser.from_mol('../tests/testset/4_Cs.mol')
-#     # water = mol_parser.from_mol('../tests/mol_samples/H2O2.mol')
+        Symmetric elements:
+        Dooh: E 2C∞ ∞sigma_i i 2S∞ ∞C2
+        Coov: E 2C∞ sigma_v
+        '''
 
-#     water.build()
-#     water_spg = SPG(water)
-#     mol_parser.to_mol(water, water.name + '_original')
-#     water_spg.build()
-#     mol_parser.to_mol(water_spg.mol, water.name + '_aligned')
+        inv = check_inversion(self.mol.coordinates)
+        if inv:
+            return "Dooh"
+        else:
+            return "Coov"
 
-#     return
+    def check_symmetry_asymmetric(self):
+        '''
+        Check the symmetry of the asymmetric molecule.
+        '''
 
-=======
->>>>>>> origin/main
+
+
+        return
+
+    def check_symmetry_symmetric(self):
+        '''
+        Check the symmetry of the symmetric molecule.
+        '''
+
+
+
+        return
+
+    def check_symmetry_spherical(self):
+        '''
+        Check the symmetry of the spherical molecule.
+
+        Possible point groups:
+        T: T, Th, Td
+        O: O, Oh
+        I: I, Ih
+
+        Symmetric elements:
+        T: E 4C3 4C3 3C2
+        Th: E 4C3 4C3 3C2 i 4S6 4S6 3sigma_h
+        Td: E 8C3 3C2 6S4 6sigma_d
+        O: E 6C4 3C2 8C3 6C2
+        Oh: E 8C3 6C2 6C4 3C2 i 6S4 8S6 3sigma_h 6sigma_d
+        I: E 12C5 12C5 20C3 15C2
+        Ih: E 12C5 12C5 20C3 15C2 i 12S10 12S10 20S6 15sigma
+
+            T  Th  Td  O  Oh  I  Ih
+        i   n  y   n   n   y   n   y
+        Cn  3  3   3   4   4   5   5
+        Sn  n  6   4   n   6   n   10
+
+        '''
+
+
+        # First check inversion
+        # Yes -> Ih, Oh, Th, No -> I, O, Td, Th
+        # Check the highest Cn
+        # 3 -> T, 4 -> O, 5 -> I
+        # Check the highest Sn
+        # 6 -> Th, 4 -> Td
+
+        Cn = max(check_Cn_extd(self.mol.coordinates), check_Cn(self.mol.coordinates))
+        # print("Cn", Cn)
+
+        if check_inversion(self.mol.coordinates):
+            if Cn == 5:
+                self.spg = "Ih"
+            elif Cn == 4:
+                self.spg = "Oh"
+            elif Cn == 3:
+                self.spg = "Th"
+        else:
+            if Cn == 5:
+                self.spg = "I"
+            elif Cn == 4:
+                self.spg = "O"
+            elif Cn == 3:
+                Sn = max(check_Sn_extd(self.mol.coordinates), check_Sn(self.mol.coordinates))
+                # print("Sn", Sn)
+                if Sn == 6:
+                    self.spg = "Th"
+                elif Sn == 4:
+                    self.spg = "Td"
+                else:
+                    self.spg = "T"
+            else:
+                self.spg = "TBD"
+
+        return
+
 # if __name__ == "__main__":
 #     test_mol()
