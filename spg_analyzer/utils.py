@@ -10,6 +10,7 @@ Functions:
 
 """
 
+from calendar import c
 import numpy as np
 
 from data import TOLERANCE, tol_map
@@ -103,20 +104,71 @@ def thre_cut(x, thre=6):
     '''
     return np.around(x, thre)
 
-def compare_coords(atm_list, coords1, coords2, mode = 'medium'):
+def coords_intersect(atm_list1, atm_list2, coords1, coords2, mode = 'medium'):
+    '''
+    The sorted coordinates may have some twists, but they are equivalent. 
+    This function checks if the two sets of coordinates are equivalent.
+
+    Example:
+
+    '''
+    token = np.zeros(len(atm_list1))
+
+    for i in range(len(atm_list1)):
+        for j in range(len(atm_list2)):
+            if np.allclose(coords1[i], coords2[j], atol=tol_map[mode]) and atm_list1[i] == atm_list2[j]:
+                token[i] = 1
+                break
+
+    if np.all(token):
+        return True
+    else:
+        return False 
+
+# reference: https://en.wikipedia.org/wiki/3D_rotation_group, Mobius transformation
+def rotate_molecule(coords):
+    '''
+    Rotate the molecule at random angles.
+    
+    Warning: rotating a molecule may reduce its symmetry, and the point group may change.
+    Use GaussView or other software to check the symmetry of the molecule after rotation.
+
+    Rotate matrix:
+    R = [[cos(psi)*cos(phi)-cos(theta)*sin(psi)*sin(phi), -sin(psi)*cos(phi)-cos(theta)*cos(psi)*sin(phi), sin(theta)*sin(phi)],
+         [cos(psi)*sin(phi)+cos(theta)*sin(psi)*cos(phi), -sin(psi)*sin(phi)+cos(theta)*cos(psi)*cos(phi), -sin(theta)*cos(phi)],
+         [sin(theta)*sin(psi), sin(theta)*cos(psi), cos(theta)]]
+    '''
+    theta, phi, psi = np.random.rand(3)*2*np.pi
+    R = np.array([[np.cos(psi)*np.cos(phi)-np.cos(theta)*np.sin(psi)*np.sin(phi), -np.sin(psi)*np.cos(phi)-np.cos(theta)*np.cos(psi)*np.sin(phi), np.sin(theta)*np.sin(phi)],
+                    [np.cos(psi)*np.sin(phi)+np.cos(theta)*np.sin(psi)*np.cos(phi), -np.sin(psi)*np.sin(phi)+np.cos(theta)*np.cos(psi)*np.cos(phi), -np.sin(theta)*np.cos(phi)],
+                    [np.sin(theta)*np.sin(psi), np.sin(theta)*np.cos(psi), np.cos(theta)]])
+    
+    return np.dot(R, coords.T).T
+
+
+
+def compare_coords(atm_list, coords1, coords2, mode = 'medium', enhanced = False):
     '''
     Compare two sets of coordinates to see if they are the same within a tolerance.
     The coordinates are first sorted, then compared.
+
+    Args:
+        atm_list: list of atoms
+        coords1: np.array of coordinates
+        coords2: np.array of coordinates
+        mode: string, the mode for tolerance, default is 'medium'
+        enhanced: boolean, if True, the comparison will enable coords intersection function
+                  to check if the two coords matrice are equivalent, default is False
     '''
 
     if mode == 'medium':
         cut = 3
-    elif mode == 'tight' or mode == 'very_tight':
+    elif mode == 'tight':
         cut = 4
-    elif mode == 'loose':
+    elif mode == 'very_tight':
+        cut = 5
+    elif mode.__contains__('loose'):
         cut = 2
-    elif mode == 'very_loose':
-        cut = 1
     else:
         cut = 3
 
@@ -132,5 +184,9 @@ def compare_coords(atm_list, coords1, coords2, mode = 'medium'):
     coords1 = sort_coords(coords1, sorted_idx1)
     coords2 = sort_coords(coords2, sorted_idx2)
 
-    return np.array_equal(atm1, atm2) and np.allclose(coords1, coords2, atol=tol_map[mode])
+    if enhanced:
+        return coords_intersect(atm1, atm2, coords1, coords2, mode)
+    else:
+        return np.array_equal(atm1, atm2) and np.allclose(coords1, coords2, atol=tol_map[mode])
+
 

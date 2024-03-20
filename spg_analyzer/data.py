@@ -3,10 +3,6 @@ This file contains the element data for the spg_analyzer package.
 
 """
 
-from termios import VLNEXT
-from zmq import MECHANISM
-
-
 TOLERANCE = 1e-5
 DEG_TOLERANCE = 4.0
 INERTIA_TOLERANCE = 1e-3

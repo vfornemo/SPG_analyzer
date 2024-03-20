@@ -85,7 +85,7 @@ def to_xyz(mole, filename):
     f.close()
     return
 
-def to_mol(mole, filename):
+def to_mol(mole, filename, path='../tests/'):
     """
     Convert a Molecule object to a .mol file.
 
@@ -96,7 +96,7 @@ def to_mol(mole, filename):
     Returns:
         .mol file.
     """
-    f = open('../tests/' + filename + '.mol', 'w')
+    f = open(path + filename + '.mol', 'w')
     if not hasattr(mole, 'headblock'):
         RuntimeError('Molecule object does not have .mol file information.')
     f.writelines(mole.headblock)

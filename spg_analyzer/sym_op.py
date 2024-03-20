@@ -3,13 +3,15 @@ from math import e
 import numpy as np
 # symmetry operation functions
 
-from utils import delta, sort_coords, thre_cut, compare_coords
+from utils import delta, sort_coords, sort_coords_idx, thre_cut, compare_coords
 from data import extend_axis, full_axis
 
+# reference: http://www.pci.tu-bs.de/aggericke/PC4e/Kap_IV/Matrix_Symm_Op.htm
 # Proper Rotation
 
 # Cn
 
+# reference: https://en.wikipedia.org/wiki/Rotation_matrix
 def Cn_rot(coord, n, xyz):
     '''
     Rotate the coordinates by Cn along x, y, or z axis.
@@ -63,7 +65,7 @@ def Cn_rot(coord, n, xyz):
 
     return np.matmul(rot_mat, coord.T).T 
 
-
+# reference: https://en.wikipedia.org/wiki/Rotation_matrix
 def Cn_rot_axis(coord, n, axis):
     '''
     Rotate the coordinates by Cn along a given axis unit vector.
@@ -96,15 +98,16 @@ def Cn_rot_axis(coord, n, axis):
     
     return np.matmul(rot_mat, coord.T).T
 
-def check_Cn(atm_list, coord, return_axis=False, mode='medium'):
+def check_Cn(atm_list, coord, return_axis=False, mode='medium', enhanced=False):
     '''
-    Find the highest Cn (from C8 - C3) in the molecule along x, y or z axis, excluding C2 and C1.
+    Find the highest Cn (from C8 - C2) in the molecule along x, y or z axis, excluding C1.
 
     Args:
         atm_list: list of atoms in the molecule
         coord: coordinates of the molecule
         return_axis: if True, return the axis of rotation
         mode: tolerance mode, from 'ultra_loose' to 'very_tight', default is 'medium'
+        enhanced: if True, the comparison will enable coords intersection function
 
     Returns:
         order of rotation, n, if the molecule has Cn symmetry, 0 otherwise.
@@ -117,24 +120,28 @@ def check_Cn(atm_list, coord, return_axis=False, mode='medium'):
         rot_x = Cn_rot(coord, i, 'x')
 
         # print(f"Check C{i} rotation about x, y, z axis.")
-        # print(f"rot_z: {rot_z}")
-        # print(f"rot_y: {rot_y}")
-        # print(f"rot_x: {rot_x}")
-        # print(f"coord: {coord}")
+        # rot_z1 = thre_cut(rot_z, 2)
+        # rot_y1 = thre_cut(rot_y, 2)
+        # rot_x1 = thre_cut(rot_x, 2)
+        # coord1 = thre_cut(coord, 2)
+        # print(f"rot_z:", sort_coords(rot_z1, sort_coords_idx(rot_z1)))
+        # print(f"rot_y:", sort_coords(rot_y1, sort_coords_idx(rot_y1)))
+        # print(f"rot_x:", sort_coords(rot_x1, sort_coords_idx(rot_x1)))
+        # print(f"coord:", sort_coords(coord1, sort_coords_idx(coord1)))
 
-        if compare_coords(atm_list, rot_z, coord, mode):
+        if compare_coords(atm_list, rot_z, coord, mode, enhanced):
             print(f"C{i} rotation about z-axis found in the molecule.")
             if return_axis:
                 return i, [0, 0, 1]
             else:
                 return i
-        elif compare_coords(atm_list, rot_y, coord, mode):
+        elif compare_coords(atm_list, rot_y, coord, mode, enhanced):
             print(f"C{i} rotation about y-axis found in the molecule.")
             if return_axis:
                 return i, [0, 1, 0]
             else:
                 return i
-        elif compare_coords(atm_list, rot_x, coord, mode):
+        elif compare_coords(atm_list, rot_x, coord, mode, enhanced):
             print(f"C{i} rotation about x-axis found in the molecule.")
             if return_axis:
                 return i, [1, 0, 0]
@@ -143,16 +150,16 @@ def check_Cn(atm_list, coord, return_axis=False, mode='medium'):
         else:
             continue
     
-    print("No Cn (3-8) rotation axis along x, y, z found in the molecule.")
+    print("No Cn (2-8) rotation axis along x, y, z found in the molecule.")
 
     if return_axis:
         return 0, [0, 0, 0]
     else:
         return 0
     
-def check_Cn_extd(atm_list, coord, return_axis=False, mode='medium'):
+def check_Cn_extd(atm_list, coord, return_axis=False, mode='medium', enhanced=False):
     '''
-    Find the highest Cn (from C8 - C3) in the molecule along some axis, excluding C2 and C1.
+    Find the highest Cn (from C8 - C2) in the molecule along some axis, and C1.
 
     the axis are:
     1. axis between x, y, z
@@ -178,7 +185,7 @@ def check_Cn_extd(atm_list, coord, return_axis=False, mode='medium'):
             axis = np.array(axis)/np.linalg.norm(axis)
             rot = Cn_rot_axis(coord, i, axis)
 
-            if compare_coords(atm_list, rot, coord, mode):
+            if compare_coords(atm_list, rot, coord, mode, enhanced):
                 print(f"C{i} rotation about {axis} found in the molecule.")
                 if return_axis:
                     return i, axis
@@ -187,13 +194,13 @@ def check_Cn_extd(atm_list, coord, return_axis=False, mode='medium'):
             else:
                 continue
 
-    print("No Cn (3-8) rotation axis found in the molecule.")
+    print("No Cn (2-8) rotation axis found in the molecule.")
     if return_axis:
         return 0, [0, 0, 0]
     else:
         return 0
 
-def check_C2_perp_Cn(atm_list, coord, Cn, mode='medium'):
+def check_C2_perp_Cn(atm_list, coord, Cn, mode='medium', enhanced=False):
     '''
     Check how many C2 axis that are perpendicular to the Cn axis in the molecule.
 
@@ -204,13 +211,18 @@ def check_C2_perp_Cn(atm_list, coord, Cn, mode='medium'):
     Returns:
         number of C2 axis, n, if the molecule has C2 symmetry, 0 otherwise.
     '''
+
+    if Cn == [0, 0, 0]:
+        print("No Cn axis in the molecule.")
+        return 0
+    
     nC2 = 0
 
     for axis in full_axis:
         if np.dot(Cn, axis) == 0:
             axis = np.array(axis)/np.linalg.norm(axis)
             rot = Cn_rot_axis(coord, 2, axis)
-            if compare_coords(atm_list, rot, coord, mode):
+            if compare_coords(atm_list, rot, coord, mode, enhanced):
                 nC2 += 1
 
     print(f"{nC2} C2 axis perpendicular to {Cn} found in the molecule.")
@@ -488,6 +500,7 @@ def reflection(coord, xyz):
     
     return np.matmul(ref_mat, coord.T).T
 
+# reference: https://en.wikipedia.org/wiki/Transformation_matrix
 def reflection_plane(coord, vec):
     '''
     Reflect the coordinates about a plane with normal vector vec[ux, uy, uz].
@@ -504,6 +517,7 @@ def reflection_plane(coord, vec):
     Returns:
         reflected coordinates of the molecule
     '''
+
     ref_mat = np.zeros((3,3))
     vec = np.array(vec)/np.linalg.norm(vec)
     for i in range(3):
@@ -582,13 +596,51 @@ def check_reflection_h(atm_list, coord, Cn, mode='medium'):
     Returns:
         True if the molecule has reflection symmetry, False otherwise.
     '''
+        
+    if Cn == [0, 0, 0]:
+        print("No Cn axis in the molecule.")
+        return  
+
     ref = reflection_plane(coord, Cn)
     if compare_coords(atm_list, ref, coord, mode):
         print(f"Reflection about plane perpendicular to {Cn} found in the molecule.")
         return True
     else:
-        print("No reflection mirror found in the molecule.")
+        print("No reflection mirror h found in the molecule.")
         return False	  
+
+def check_reflection_v(atm_list, coord, Cn, mode='medium'):
+    '''
+    Check the symmetry of the molecule using reflection about a plane including the Cn axis (sigma_v).
+    Three planes, xy, yz, xz, are considered. The ones that are not perpendicular to the Cn axis are considered.
+
+    Args:
+        coord: coordinates of the molecule
+        Cn: vector of Cn axis
+
+    Returns:
+        True if the molecule has reflection symmetry, False otherwise.
+    '''
+        
+    if Cn == [0, 0, 0]:
+        print("No Cn axis in the molecule.")
+        return  
+    
+    plane_vec = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+    for vec in plane_vec:
+        if np.dot(Cn, vec) == 0:
+            ref = reflection_plane(coord, vec)
+            if compare_coords(atm_list, ref, coord, mode):
+                print(f"Reflection about plane including {vec} found in the molecule.")
+                return True
+            else:
+                continue
+        else:
+            continue
+        
+    print("No reflection mirror v found in the molecule.")
+    return False
 
 # Inversion
 

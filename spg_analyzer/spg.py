@@ -57,6 +57,7 @@ class Molecule:
 
         # move the molecule to the mass center
         mass_ctr = self.mass_center()
+        # print("mass center", mass_ctr)
         self.coord_shift(mass_ctr)
         self.coordinates = thre_cut(self.coordinates)
         # print("coordinates", self.coordinates)
@@ -168,7 +169,7 @@ class SPG(Molecule):
 
         return
 
-    def inertia_tensor(self, tol = INERTIA_TOLERANCE):
+    def inertia_tensor(self):
         '''
         Calculate the inertia tensor of the molecule.
         [[Ixx, Ixy, Ixz],
@@ -181,7 +182,9 @@ class SPG(Molecule):
                 for k in range(3):
                     # Sigma(m_i * (delta(j,k) * r_i^2 - r_i[j] * r_i[k]))
                     tensor[j][k] += self.mol.atm_mass[i] * (delta(j,k)*distance_square(self.mol.coordinates[i]) - self.mol.coordinates[i][j] * self.mol.coordinates[i][k])
-        tol = int(-np.log10(tol))
+        
+        # tol = tol_map[self.mode]
+        tol = 3
         tensor = thre_cut(tensor, tol)
         print("inertia tensor after threshold cut", tensor)
         self.inertia = tensor
@@ -201,14 +204,20 @@ class SPG(Molecule):
         # eig_val is the principal moments of inertia
         # eig_vec is the principal axes of inertia
 
+        self.prin_mmt = eig_val
         self.prin_mmt = thre_cut(eig_val)
         print("principal moment", self.prin_mmt)
+        self.prin_axes = eig_vec
+        self.prin_axes = [[ 9.48542763e-01,  3.16649058e-01,  1.64036413e-05],
+                          [-3.16649058e-01,  9.48542763e-01,  6.50166900e-06],
+                          [-1.35008079e-05, -1.13613087e-05,  1.00000000e+00]]
+
         self.prin_axes = thre_cut(eig_vec)
         print("principal axes", self.prin_axes)
 
         return
 
-    def align_axes(self, tol = DEG_TOLERANCE):
+    def align_axes(self):
         '''
         Align the principal axes of inertia with the x, y, z axes.
         '''
@@ -217,23 +226,57 @@ class SPG(Molecule):
         #  [cosyx', cosyy', cosyz']
         #  [coszx', coszy', coszz']]
 
-        # set the tolerance for the alignment, angle between the principal axis and x, y, z axes
-        tol = np.cos(np.deg2rad(tol))
-        # print("tol", tol)
-
         # calculate the angle theta between the principal axis and z axis
-        xyz_axis = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        # xyz_axis = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
         # rotation matrix
         # X = MX', M' = M^T
         # X' = M^T X
-        rot_mat = np.zeros((3, 3))
-        for i in range(3):
-            for j in range(3):
-                rot_mat[i][j] = np.matmul(self.prin_axes[i], xyz_axis[j])
+        # rot_mat = np.zeros((3, 3))
+
+        # for i in range(3):
+        #     for j in range(3):
+        #         rot_mat[i][j] = np.matmul(self.prin_axes[i], xyz_axis[j])
         
+        rot_mat = self.prin_axes.T
+
         # align the principal axes with the x, y, z axes
-        self.mol.coordinates = np.matmul(self.mol.coordinates, rot_mat)
+        self.mol.coordinates = np.matmul(rot_mat, self.mol.coordinates.T).T
         self.mol.coordinates = thre_cut(self.mol.coordinates)
+        return
+    
+    def align_axes_extd(self):
+        '''
+        Align the x y z axes, z to the Cn axis, x to a vector from origin to an atom perpendicular to the Cn axis
+         y to the cross product of z and x. 
+        '''
+        # Cn axis vector is self.Cn_axis
+
+        # Find the atom
+        # perpendicular to the Cn axis is prior, but not on the Cn axis is ok
+        x_new = None
+        # normalize z_new
+        z_new = self.Cn_axis
+
+
+        for coord in self.mol.coordinates:
+            if abs(np.dot(coord, self.Cn_axis)) < 1e-3:
+                x_new = coord
+                break
+        if x_new is None:
+            return
+        
+        x_new = np.array(x_new) / np.linalg.norm(x_new)
+        z_new = np.array(self.Cn_axis) / np.linalg.norm(self.Cn_axis)
+        y_new = np.cross(z_new, x_new)
+        y_new = np.array(y_new) / np.linalg.norm(y_new)
+
+        rot_mat = np.array([x_new, y_new, z_new])
+        # print("rot_mat", rot_mat)
+
+        self.mol.coordinates = np.matmul(rot_mat, self.mol.coordinates.T).T
+        self.mol.coordinates = thre_cut(self.mol.coordinates)
+        self.Cn_axis = [0, 0, 1]
+        
         return
     
     def check_degeneracy(self, tol=DEGENERACY_TOLERANCE):
@@ -340,10 +383,84 @@ class SPG(Molecule):
     def check_symmetry_asym(self):
         '''
         Check the symmetry of the asymmetric molecule.
+
+        Possible point groups:
+        C1, Cs, Ci, Cn
+        D2, S2, C2h, C2v, D2h, D2d, D3d
+
+        Symmetric elements:
+        C1: E
+        Cs: E sigma_h
+        Ci: E i
+        Cn: E Cn
         '''
 
         self.spg = "TBD"
 
+        # Check Cn axis
+        Cn, self.Cn_axis = check_Cn(self.mol.atm_name, self.mol.coordinates, True, self.mode)
+        if Cn:
+            self.so.append("C" + str(Cn))
+        else:
+            # if no Cn axis, use enhanced mode to check Cn axis
+            Cn, self.Cn_axis = check_Cn(self.mol.atm_name, self.mol.coordinates, True, self.mode, True)
+            if Cn:
+                self.so.append("C" + str(Cn))
+        
+        # Check C2 axis perpendicular to Cn axis
+        nC2 = check_C2_perp_Cn(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode)
+        if nC2:
+            self.so.append(str(nC2) + "C2")
+
+
+        if nC2 >= 1 and Cn >= 2:
+            # Dnh Dnd Dn
+            if check_reflection_h(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode):
+                # Dnh
+                self.so.append("sigma_h")
+                self.spg = "D" + str(Cn) + "h"
+            else:
+                # Dnd or Dn
+                Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 16, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 16, self.mode))
+                if Sn:
+                    self.so.append("S" + str(Sn))
+                    self.spg = "D" + str(Cn) + "d"
+                else:
+                    self.spg = "D" + str(Cn)
+        elif nC2 == 0 and Cn >= 2:
+            # Cnh Cnv S2n
+            if check_reflection_h(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode):
+                # Cnh
+                self.so.append("sigma_h")
+                self.spg = "C" + str(Cn) + "h"
+            else:
+                # Cnv S2n Cn
+                if check_reflection_v(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode):
+                    # Cnv
+                    self.so.append("sigma_v")
+                    self.spg = "C" + str(Cn) + "v"
+                else:
+                    # S2n Cn
+                    Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 8, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 8, self.mode))
+                    if Sn:
+                        self.so.append("S" + str(Sn))
+                        self.spg = "S" + str(2*Cn)
+                    else:
+                        self.spg = "C" + str(Cn)
+
+        elif nC2 == 0 and Cn == 0:
+            # C1 Cs Ci
+            if check_inversion(self.mol.atm_name, self.mol.coordinates, self.mode):
+                # Ci
+                self.so.append("i")
+                self.spg = "Ci"
+            elif check_reflection(self.mol.atm_name, self.mol.coordinates, self.mode):
+                # Cs
+                self.so.append("sigma_h")
+                self.spg = "Cs"
+            else:
+                # C1
+                self.spg = "C1"
         return
 
     def check_symmetry_sym(self):
@@ -393,6 +510,11 @@ class SPG(Molecule):
         self.so.append("C" + str(Cn))
         if nC2:
             self.so.append(str(nC2) + "C2")
+        else:
+            self.align_axes_extd()
+            nC2 = check_C2_perp_Cn(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode, True)
+            if nC2:
+                self.so.append(str(nC2) + "C2")
 
         if nC2 >= 1 and Cn >= 2:
             # Dnh Dnd Dn
@@ -489,19 +611,23 @@ class SPG(Molecule):
                 self.spg = "O"
             elif Cn == 3:
                 self.so.append("C3")
-                Sn = max(check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 10, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 10, self.mode))
+                Sn = [check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 10, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 10, self.mode)]
                 # print("Sn", Sn)
-                if Sn == 6:
+                if Sn.__contains__(6):
+                    # redundant check
                     self.so.append("S6")
-                    self.spg = "TBD"
-                elif Sn == 4:
+                    self.spg = "Oh"
+                elif Sn.__contains__(4):
                     self.so.append("S4")
                     self.spg = "Td"
                 else:
                     self.spg = "T"
             else:
-                self.spg = "TBD"
-
+                # redundant check
+                Sn = [check_Sn_extd(self.mol.atm_name, self.mol.coordinates, 10, self.mode), check_Sn(self.mol.atm_name, self.mol.coordinates, 10, self.mode)]
+                if Sn.__contains__(4):
+                    self.so.append("S4")
+                    self.spg = "Td"
         return
 
 # if __name__ == "__main__":
