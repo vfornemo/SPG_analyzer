@@ -9,7 +9,7 @@ import os
 # h2o = Molecule([['O', [0.0, 0.0, 0.0]], ['H', [0.0, 0.0, 1.0]], ['H', [0.0, 1.0, 0.0]]])
 
 # Another way to create a molecule using mol_parser
-mol = mol_parser.from_mol('../tests/testset2/Td.mol')
+mol = mol_parser.from_mol('../tests/testset/C3h.mol')
 # mol = mol_parser.from_mol('../tests/mol_rotated/D8h_rotated.mol')
 # mol = mol_parser.from_mol('../tests/mol_samples/C40.mol')
 

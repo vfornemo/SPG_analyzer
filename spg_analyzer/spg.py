@@ -248,6 +248,9 @@ class SPG(Molecule):
         '''
         Align the x y z axes, z to the Cn axis, x to a vector from origin to an atom perpendicular to the Cn axis
          y to the cross product of z and x. 
+        If no such atom, align the z axis to the Cn axis, x to projection of an atom that is not on the Cn axis and origin, y to the cross product of z and x.
+
+        projection of an vector a to a plane with normal vector n is a - (a.n)n
         '''
         # Cn axis vector is self.Cn_axis
 
@@ -259,10 +262,16 @@ class SPG(Molecule):
 
 
         for coord in self.mol.coordinates:
-            if abs(np.dot(coord, self.Cn_axis)) < 1e-3:
+            # vector perpendicular to the Cn axis but non-zero
+            if abs(np.dot(coord, self.Cn_axis)) < 1e-3 and np.linalg.norm(coord) > 1e-2:
                 x_new = coord
                 break
         if x_new is None:
+            for coord in self.mol.coordinates:
+                cosa = np.dot(coord, self.Cn_axis) / (np.linalg.norm(coord) * np.linalg.norm(self.Cn_axis))
+                if abs(cosa) - 1 < 1e-3:
+                    x_new = np.array(coord) - np.dot(coord, self.Cn_axis) * np.array(self.Cn_axis)
+                    break
             return
         
         x_new = np.array(x_new) / np.linalg.norm(x_new)
@@ -512,7 +521,7 @@ class SPG(Molecule):
             self.so.append(str(nC2) + "C2")
         else:
             self.align_axes_extd()
-            nC2 = check_C2_perp_Cn(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode, True)
+            nC2 = check_C2_perp_Cn_extd(self.mol.atm_name, self.mol.coordinates, Cn, self.Cn_axis, self.mode, True)
             if nC2:
                 self.so.append(str(nC2) + "C2")
 

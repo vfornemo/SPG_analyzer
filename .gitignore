@@ -1,1 +1,4 @@
+*.log
 tests/*.mol
+tests/mol_aligned
+tests/mol_rotated

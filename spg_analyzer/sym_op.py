@@ -228,6 +228,48 @@ def check_C2_perp_Cn(atm_list, coord, Cn, mode='medium', enhanced=False):
     print(f"{nC2} C2 axis perpendicular to {Cn} found in the molecule.")
     return nC2
 
+def check_C2_perp_Cn_extd(atm_list, coord, Cn, Cn_axis, mode='medium', enhanced=False):
+    '''
+    Check how many C2 axis that are perpendicular to the Cn axis in the molecule, according 
+    to the order of the Cn axis.
+    
+    The molecule should be properly aligned using align_axes_extd to make sure the Cn axis is
+    z-axis and x-axis points to an atom.
+
+    Args:
+        coord: coordinates of the molecule
+        Cn: Order of Cn axis
+        Cn_axis: vector of Cn axis
+
+
+    Returns:
+        number of C2 axis, n, if the molecule has C2 symmetry, 0 otherwise.
+    '''
+
+    if Cn_axis == [0, 0, 0]:
+        print("No Cn axis in the molecule.")
+        return 0
+    
+    theta = 2*np.pi/Cn
+    nC2 = 0
+
+    # Generate axis from [1, 0, 0] to [-1, 0, 0] with angle step of pi/Cn
+    # The number of axis is Cn
+    axis_list = []
+    for i in range(Cn):
+        axis = [np.cos(i*theta), np.sin(i*theta), 0]
+        axis_list.append(axis)
+
+    for axis in axis_list:
+        if np.dot(Cn_axis, axis) == 0:
+            # axis = np.array(axis)/np.linalg.norm(axis)
+            rot = Cn_rot_axis(coord, 2, axis)
+            if compare_coords(atm_list, rot, coord, mode, enhanced):
+                nC2 += 1
+
+    print(f"{nC2} C2 axis perpendicular to {Cn_axis} found in the molecule.")
+    return nC2
+
 def check_C2_full(atm_list, coord, mode='medium'):
     '''
     Check how many C2 axis that are perpendicular to the Cn axis in the molecule.
@@ -603,7 +645,7 @@ def check_reflection_h(atm_list, coord, Cn, mode='medium'):
 
     ref = reflection_plane(coord, Cn)
     if compare_coords(atm_list, ref, coord, mode):
-        print(f"Reflection about plane perpendicular to {Cn} found in the molecule.")
+        print(f"Reflection h about plane perpendicular to {Cn} found in the molecule.")
         return True
     else:
         print("No reflection mirror h found in the molecule.")
@@ -632,7 +674,7 @@ def check_reflection_v(atm_list, coord, Cn, mode='medium'):
         if np.dot(Cn, vec) == 0:
             ref = reflection_plane(coord, vec)
             if compare_coords(atm_list, ref, coord, mode):
-                print(f"Reflection about plane including {vec} found in the molecule.")
+                print(f"Reflection v about plane including {vec} found in the molecule.")
                 return True
             else:
                 continue
