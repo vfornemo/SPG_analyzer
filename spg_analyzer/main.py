@@ -9,7 +9,7 @@ import os
 # h2o = Molecule([['O', [0.0, 0.0, 0.0]], ['H', [0.0, 0.0, 1.0]], ['H', [0.0, 1.0, 0.0]]])
 
 # Another way to create a molecule using mol_parser
-mol = mol_parser.from_mol('../tests/testset/C3h.mol')
+mol = mol_parser.from_mol('../tests/testset/Ih_2.mol')
 # mol = mol_parser.from_mol('../tests/mol_rotated/D8h_rotated.mol')
 # mol = mol_parser.from_mol('../tests/mol_samples/C40.mol')
 
@@ -26,7 +26,7 @@ mol_spg = SPG(mol)
 # Build the SPG object
 mol_spg.build()
 # Save the aligned molecule to .mol file
-mol_parser.to_mol(mol_spg.mol, mol.name + '_aligned', '../tests/mol_aligned/')
+# mol_parser.to_mol(mol_spg.mol, mol.name + '_aligned', '../tests/mol_aligned/')
 
 # print("Coordinates of molecule", mol_spg.mol.coordinates)
 

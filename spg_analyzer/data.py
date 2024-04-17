@@ -6,7 +6,7 @@ This file contains the element data for the spg_analyzer package.
 TOLERANCE = 1e-5
 DEG_TOLERANCE = 4.0
 INERTIA_TOLERANCE = 1e-3
-DEGENERACY_TOLERANCE = 1e-2
+DEGENERACY_TOLERANCE = 0.05
 
 VERY_TIGHT_TOLERANCE = 1e-4
 TIGHT_TOLERANCE = 1e-3

@@ -2,3 +2,4 @@
 tests/*.mol
 tests/mol_aligned
 tests/mol_rotated
+pyscf_test.py

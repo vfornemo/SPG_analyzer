@@ -137,8 +137,9 @@ class SPG(Molecule):
         self.mol = mol
         self.so = []
         self.mode = "medium"
+        self.spg = "unknown"
 
-    def build(self):
+    def build(self, align=True):
         '''
         Build the data for symmetry analysis, including computing the inertia tensor, principal moments and axes of inertia, 
         and aligning the principal axes of inertia with the x, y, z axes.
@@ -154,7 +155,8 @@ class SPG(Molecule):
         self.principal_moments_axes()
 
         # align the principal axes of inertia with the x, y, z axes
-        self.align_axes()
+        if align:
+            self.align_axes()
 
         # check the degeneracy of the molecule
         self.check_degeneracy()
@@ -200,6 +202,16 @@ class SPG(Molecule):
                [n3x n3y n3z]] z
         '''
     	# Diagonalize the inertia tensor
+     
+        # set threshold for diagonalization (1e-4)
+        diag = max(self.inertia[0][0], self.inertia[1][1], self.inertia[2][2])
+        for i in range(3):
+            for j in range(3):
+                if i != j:
+                    if abs(self.inertia[i][j]) < 1e-4 * diag:
+                        self.inertia[i][j] = 0
+        
+     
         eig_val, eig_vec = np.linalg.eig(self.inertia)
         # eig_val is the principal moments of inertia
         # eig_vec is the principal axes of inertia
@@ -208,9 +220,9 @@ class SPG(Molecule):
         self.prin_mmt = thre_cut(eig_val)
         print("principal moment", self.prin_mmt)
         self.prin_axes = eig_vec
-        self.prin_axes = [[ 9.48542763e-01,  3.16649058e-01,  1.64036413e-05],
-                          [-3.16649058e-01,  9.48542763e-01,  6.50166900e-06],
-                          [-1.35008079e-05, -1.13613087e-05,  1.00000000e+00]]
+        # self.prin_axes = [[ 9.48542763e-01,  3.16649058e-01,  1.64036413e-05],
+        #                   [-3.16649058e-01,  9.48542763e-01,  6.50166900e-06],
+        #                   [-1.35008079e-05, -1.13613087e-05,  1.00000000e+00]]
 
         self.prin_axes = thre_cut(eig_vec)
         print("principal axes", self.prin_axes)
@@ -221,6 +233,7 @@ class SPG(Molecule):
         '''
         Align the principal axes of inertia with the x, y, z axes.
         '''
+        
         # rotation matrix
         # [[cosxx', cosxy', cosxz']
         #  [cosyx', cosyy', cosyz']
@@ -514,7 +527,7 @@ class SPG(Molecule):
         D6h: E 2C6 2C3 C2 3C2 3C2 i 2S6 2S3 sigma_h 3sigma_v 3sigma_d
         
         '''
-        Cn, self.Cn_axis = check_Cn(self.mol.atm_name, self.mol.coordinates, True, self.mode)
+        Cn, self.Cn_axis = check_Cn(self.mol.atm_name, self.mol.coordinates, True, self.mode)       
         nC2 = check_C2_perp_Cn(self.mol.atm_name, self.mol.coordinates, self.Cn_axis, self.mode)
         self.so.append("C" + str(Cn))
         if nC2:
