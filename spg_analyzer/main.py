@@ -1,7 +1,5 @@
 import mol_parser
-from spg import Molecule, SPG
-import sym_op
-import os
+from spg import SPG
 
 # test to check if the function works
 
